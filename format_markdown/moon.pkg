@@ -1,0 +1,2 @@
+// Format package: Markdown parser and render adapter.
+// Will depend on `kozmosa/yuegui/core` when implementation begins.

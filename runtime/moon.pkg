@@ -1,0 +1,2 @@
+// Runtime package: filesystem, process, watcher, server.
+// Will depend on `kozmosa/yuegui/core` when implementation begins.

@@ -1,0 +1,2 @@
+// CLI package: command parsing and user-facing output.
+// Will depend on all other packages when implementation begins.

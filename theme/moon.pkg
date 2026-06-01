@@ -1,0 +1,2 @@
+// Theme package: layout model and HTML renderer.
+// Will depend on `kozmosa/yuegui/core` when implementation begins.

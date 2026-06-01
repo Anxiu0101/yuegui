@@ -1,0 +1,7 @@
+// import {
+//   "kozmosa/yuegui" @lib,
+// }
+
+options(
+  "is-main": true,
+)

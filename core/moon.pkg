@@ -1,0 +1,8 @@
+///|
+/// Core package: pure content model, diagnostics, route/link validation.
+///
+/// Zero knowledge of filesystem, network, or process I/O.
+
+import {
+  "moonbitlang/core/set",
+}

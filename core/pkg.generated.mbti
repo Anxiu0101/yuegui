@@ -1,0 +1,159 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "kozmosa/yuegui/core"
+
+// Values
+pub const E001_BROKEN_LINK : String = "E001"
+
+pub const E002_ROUTE_COLLISION : String = "E002"
+
+pub const E003_MISSING_FRONTMATTER : String = "E003"
+
+pub const E004_UNKNOWN_FORMAT : String = "E004"
+
+pub const E005_MISSING_TEMPLATE : String = "E005"
+
+pub const E006_TYPST_COMPILE_FAILED : String = "E006"
+
+pub const W001_TYPST_LAYOUT_WARNING : String = "W001"
+
+pub const W002_SVG_EMBED_ACCESSIBILITY : String = "W002"
+
+pub const W003_ORPHAN_PAGE : String = "W003"
+
+pub fn check_broken_links(Site) -> Site
+
+pub fn check_missing_titles(Site) -> Site
+
+pub fn check_route_collisions(Site) -> Site
+
+pub fn detect_format(String) -> SourceFormat?
+
+pub fn error(String, String, Int?, Int?, String) -> Diagnostic
+
+pub fn filepath_to_route(String) -> String
+
+pub fn info(String, String, Int?, Int?, String) -> Diagnostic
+
+pub fn warning(String, String, Int?, Int?, String) -> Diagnostic
+
+// Errors
+
+// Types and methods
+pub(all) enum AssetKind {
+  Image
+  File
+  Stylesheet
+  Script
+}
+
+pub(all) struct AssetRef {
+  source_path : String
+  target_path : String
+  kind : AssetKind
+}
+
+pub(all) struct Diagnostic {
+  level : DiagnosticLevel
+  code : String
+  file_path : String
+  line : Int?
+  column : Int?
+  message : String
+}
+
+pub(all) enum DiagnosticLevel {
+  Error
+  Warning
+  Info
+}
+
+pub(all) enum FidelityLevel {
+  Full
+  Partial
+  Unknown
+}
+
+pub(all) struct Heading {
+  level : Int
+  text : String
+  id : String
+}
+
+pub(all) struct Link {
+  target : String
+  kind : LinkKind
+}
+
+pub(all) enum LinkKind {
+  Internal(String)
+  External(String)
+  Asset(String)
+}
+
+pub(all) struct PageMetadata {
+  title : String
+  description : String?
+  date : String?
+  author : String?
+  tags : Array[String]
+  draft : Bool
+  layout : String
+  weight : Int
+}
+
+pub(all) struct ParsedDocument {
+  source : SourceDocument
+  title : String?
+  headings : Array[Heading]
+  links : Array[Link]
+  assets : Array[AssetRef]
+  diagnostics : Array[Diagnostic]
+  render_capabilities : RenderCapabilities
+}
+
+pub(all) struct RenderCapabilities {
+  format : SourceFormat
+  mode : RenderMode
+  fidelity : FidelityLevel
+  warnings : Array[String]
+}
+
+pub(all) enum RenderMode {
+  SemanticHtml
+  SvgEmbed
+  Artifact
+}
+
+pub(all) struct Site {
+  pages : Map[String, SitePage]
+  routes : Array[String]
+  diagnostics : Array[Diagnostic]
+}
+
+pub(all) struct SitePage {
+  route : String
+  title : String
+  content_html : String
+  source_format : SourceFormat
+  metadata : PageMetadata
+  outgoing_links : Array[String]
+  headings : Array[Heading]
+}
+
+pub(all) struct SourceDocument {
+  path : String
+  format : SourceFormat
+  frontmatter : Map[String, String]
+  body : String
+}
+
+pub(all) enum SourceFormat {
+  Markdown
+  Typst
+  Html
+}
+
+// Type aliases
+
+// Traits
+
