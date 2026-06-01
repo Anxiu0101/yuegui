@@ -105,11 +105,15 @@ fn handle_new(matches : @argparse.Matches) -> Unit {
   match matches.subcommand {
     Some(("page", m)) => {
       let slug = m.values.get_or_default("slug", ["page"])[0]
-      println("yuegui new page \{slug}")
+      let path = "content/\{slug}/index.md"
+      println("  \{path}")
+      let _ = try? @runtime.write_file(path, page_template(slug))
     }
     Some(("post", m)) => {
       let slug = m.values.get_or_default("slug", ["post"])[0]
-      println("yuegui new post \{slug}")
+      let path = "content/blog/\{slug}/index.md"
+      println("  \{path}")
+      let _ = try? @runtime.write_file(path, post_template(slug))
     }
     Some((name, _)) => println("unknown: yuegui new \{name}")
     None => println("yuegui new --help for usage")

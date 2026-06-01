@@ -150,3 +150,36 @@ pub fn default_stylesheet() -> String {
   )
   buf.to_string()
 }
+
+///|
+/// Template for content/{slug}/index.md.
+pub fn page_template(slug : String) -> String {
+  let buf = @builtin.StringBuilder::new()
+  buf.write_string("+++\n")
+  buf.write_string("title = \"\{slug}\"\n")
+  buf.write_string("description = \"\"\n")
+  buf.write_string("+++\n")
+  buf.write_string("\n")
+  buf.write_string("# \{slug}\n")
+  buf.write_string("\n")
+  buf.write_string("Write your content here.\n")
+  buf.to_string()
+}
+
+///|
+/// Template for content/blog/{post-slug}/index.md.
+pub fn post_template(slug : String) -> String {
+  let buf = @builtin.StringBuilder::new()
+  buf.write_string("+++\n")
+  buf.write_string("title = \"\{slug}\"\n")
+  buf.write_string("description = \"\"\n")
+  buf.write_string("date = \"2026-06-01\"\n")
+  buf.write_string("author = \"\"\n")
+  buf.write_string("layout = \"post\"\n")
+  buf.write_string("+++\n")
+  buf.write_string("\n")
+  buf.write_string("# \{slug}\n")
+  buf.write_string("\n")
+  buf.write_string("Write your post here.\n")
+  buf.to_string()
+}
