@@ -71,3 +71,95 @@ pub fn check_missing_titles(site : Site) -> Site {
   }
   return { ..site, diagnostics, }
 }
+
+///|
+/// Known template variable names available in the theme context.
+/// Top-level keys that must exist for proper rendering.
+let known_template_vars : Array[String] = [
+  "site_title", "site_language", "site_pages", "page_title", "page_content", "page_route",
+  "page_description", "page_date", "page_author", "this",
+]
+
+///|
+/// Check that all template variables in the given layouts are known.
+/// Returns diagnostics for any unknown variable references.
+pub fn check_template_slots(layouts : Map[String, String]) -> Array[Diagnostic] {
+  let result : Array[Diagnostic] = []
+  for layout_name, template in layouts {
+    let unknowns = find_unknown_vars(template)
+    for var_name in unknowns {
+      result.push(
+        warning(
+          E005_MISSING_TEMPLATE,
+          "theme/layouts/\{layout_name}.html",
+          None,
+          None,
+          "Unknown template variable '\{var_name}' in layout '\{layout_name}'.",
+        ),
+      )
+    }
+  }
+  result
+}
+
+///|
+/// Find all {{ variable }} references that are not in the known set.
+fn find_unknown_vars(template : String) -> Array[String] {
+  let result : Array[String] = []
+  let len = template.length()
+  let mut pos = 0
+  while pos < len {
+    let open = find_from(template, "{{", pos)
+    match open {
+      None => break
+      Some(op) => {
+        let close = find_from(template, "}}", op + 2)
+        match close {
+          None => break
+          Some(cp) => {
+            let inner = template[op + 2:cp].trim().to_owned()
+            // skip block tags: #if, #each, /if, /each
+            if inner.has_prefix("#") || inner.has_prefix("/") {
+              pos = cp + 2
+              continue
+            }
+            // skip this and this.field references
+            if inner == "this" || inner.has_prefix("this.") {
+              pos = cp + 2
+              continue
+            }
+            // check if it's a known variable
+            if !is_known_var(inner) {
+              result.push(inner)
+            }
+            pos = cp + 2
+          }
+        }
+      }
+    }
+  }
+  result
+}
+
+///|
+/// Check if a variable name is in the known set.
+fn is_known_var(name : String) -> Bool {
+  for k in known_template_vars {
+    if name == k {
+      return true
+    }
+  }
+  false
+}
+
+///|
+fn find_from(s : String, sub : String, start : Int) -> Int? {
+  let len = s.length()
+  let sub_len = sub.length()
+  for i = start; i <= len - sub_len; i = i + 1 {
+    if s[i:i + sub_len] == sub {
+      return Some(i)
+    }
+  }
+  None
+}

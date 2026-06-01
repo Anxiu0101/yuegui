@@ -26,6 +26,8 @@ pub fn check_missing_titles(Site) -> Site
 
 pub fn check_route_collisions(Site) -> Site
 
+pub fn check_template_slots(Map[String, String]) -> Array[Diagnostic]
+
 pub fn detect_format(String) -> SourceFormat?
 
 pub fn error(String, String, Int?, Int?, String) -> Diagnostic

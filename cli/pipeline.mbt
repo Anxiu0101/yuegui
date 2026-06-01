@@ -135,6 +135,13 @@ pub fn run_build() -> Unit {
   let msg = "build: typst mode=\"" + mode + "\" (fallback=\"" + fallback + "\")"
   println(msg)
 
+  // Check template slots (E005)
+  let layouts = @theme.load_layouts("theme")
+  let slot_diags = @core.check_template_slots(layouts)
+  for diag in slot_diags {
+    println("warning[" + diag.code + "]: " + diag.message)
+  }
+
   // 6-7. Apply theme and emit
   emit_site(site)
 }
