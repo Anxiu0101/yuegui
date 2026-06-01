@@ -2,7 +2,15 @@
 package "kozmosa/yuegui/cli"
 
 // Values
+pub fn default_layout() -> String
+
+pub fn default_stylesheet() -> String
+
 pub fn dispatch() -> Unit
+
+pub fn index_markdown(String) -> String
+
+pub fn toml_config(String) -> String
 
 // Errors
 

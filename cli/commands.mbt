@@ -57,12 +57,12 @@ fn build_parser() -> @argparse.Command {
 }
 
 ///|
-/// Handle the parsed matches — print which command was selected.
+/// Handle the parsed matches — dispatch to command handlers.
 fn handle_matches(matches : @argparse.Matches) -> Unit {
   match matches.subcommand {
     Some(("init", m)) => {
       let site = m.values.get_or_default("site", ["site"])[0]
-      println("yuegui init \{site}")
+      cmd_init(site)
     }
     Some(("build", _)) => println("yuegui build")
     Some(("dev", _)) => println("yuegui dev")
@@ -74,7 +74,39 @@ fn handle_matches(matches : @argparse.Matches) -> Unit {
 }
 
 ///|
-/// Handle `new` sub-subcommands.
+/// Handle `yuegui init <site>`. Scaffolds the full project structure.
+fn cmd_init(site_name : String) -> Unit {
+  let site_dir = site_name
+
+  println("Creating site: \{site_name}")
+  println("  \{site_dir}/yuegui.toml")
+  @runtime.write_file("\{site_dir}/yuegui.toml", toml_config(site_name))
+
+  println("  \{site_dir}/content/index.md")
+  @runtime.write_file("\{site_dir}/content/index.md", index_markdown(site_name))
+
+  println("  \{site_dir}/theme/layouts/default.html")
+  @runtime.write_file(
+    "\{site_dir}/theme/layouts/default.html",
+    default_layout(),
+  )
+
+  println("  \{site_dir}/theme/assets/style.css")
+  @runtime.write_file(
+    "\{site_dir}/theme/assets/style.css",
+    default_stylesheet(),
+  )
+
+  println("")
+  println("Done! Run:")
+  println("  cd \{site_dir}")
+  println("  yuegui dev        # start dev server")
+  println("  yuegui build      # build static site")
+  println("  yuegui check      # validate content")
+}
+
+///|
+/// Handle `yuegui new <sub>` sub-subcommands.
 fn handle_new(matches : @argparse.Matches) -> Unit {
   match matches.subcommand {
     Some(("page", m)) => {
