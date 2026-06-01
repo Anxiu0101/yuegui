@@ -48,7 +48,7 @@ pub fn run_build() -> Unit {
         let parsed = parse_document(source)
         docs.push(parsed)
       }
-      (None, _) => println("build: unsupported format '\{file}', skipping")
+      (None, _) => docs.push(unsupported_doc(file))
       (_, Err(_)) => println("build: error reading '\{file}'")
     }
   }
@@ -105,7 +105,7 @@ pub fn run_check() -> Unit {
         let parsed = parse_document(source)
         docs.push(parsed)
       }
-      (None, _) => println("check: unsupported format '\{file}', skipping")
+      (None, _) => docs.push(unsupported_doc(file))
       (_, Err(_)) => println("check: error reading '\{file}'")
     }
   }
@@ -127,6 +127,39 @@ fn detect_source_format(path : String) -> @core.SourceFormat? {
     Some(@core.SourceFormat::Html)
   } else {
     None
+  }
+}
+
+///|
+/// Build a dummy ParsedDocument for unsupported files (emits E004).
+fn unsupported_doc(file : String) -> @core.ParsedDocument {
+  let source : @core.SourceDocument = {
+    path: file,
+    format: @core.SourceFormat::Html,
+    frontmatter: {},
+    body: "",
+  }
+  let caps : @core.RenderCapabilities = {
+    format: @core.SourceFormat::Html,
+    mode: @core.RenderMode::SemanticHtml,
+    fidelity: @core.FidelityLevel::Unknown,
+    warnings: [],
+  }
+  let diag = @core.warning(
+    @core.E004_UNKNOWN_FORMAT,
+    file,
+    None,
+    None,
+    "Unsupported file format '\{file}', skipping.",
+  )
+  {
+    source,
+    title: None,
+    headings: [],
+    links: [],
+    assets: [],
+    diagnostics: [diag],
+    render_capabilities: caps,
   }
 }
 
@@ -202,13 +235,14 @@ fn build_index_with_html(docs : Array[@core.ParsedDocument]) -> @core.Site {
     }
     // render body HTML
     let html = render_body_html(doc)
+    let internal_links = collect_internal_links(doc.links)
     let page : @core.SitePage = {
       route,
       title,
       content_html: html,
       source_format: doc.source.format,
       metadata: extract_page_meta(doc),
-      outgoing_links: [],
+      outgoing_links: internal_links,
       headings: doc.headings,
     }
     pages.set(route, page)
@@ -218,6 +252,19 @@ fn build_index_with_html(docs : Array[@core.ParsedDocument]) -> @core.Site {
   }
 
   { pages, routes, diagnostics: all_diagnostics }
+}
+
+///|
+/// Collect internal link targets from a list of links.
+fn collect_internal_links(links : Array[@core.Link]) -> Array[String] {
+  let result : Array[String] = []
+  for link in links {
+    match link.kind {
+      @core.LinkKind::Internal(target) => result.push(target)
+      _ => ()
+    }
+  }
+  result
 }
 
 ///|
@@ -318,7 +365,22 @@ fn emit_site(site : @core.Site) -> Unit {
     build_search_index(site),
   )
 
+  // 5. Emit manifest.json
+  let _ = try? @runtime.write_file("public/manifest.json", build_manifest(site))
+
   println("build: site emitted to public/")
+}
+
+///|
+/// Build manifest.json with page count and build metadata.
+fn build_manifest(site : @core.Site) -> String {
+  let buf = @builtin.StringBuilder::new()
+  buf.write_string("{\n")
+  buf.write_string("  \"pages\": \{site.routes.length()},\n")
+  buf.write_string("  \"updated\": \"2026-06-01\",\n")
+  buf.write_string("  \"generator\": \"yuegui 0.1.0\"\n")
+  buf.write_string("}\n")
+  buf.to_string()
 }
 
 ///|
