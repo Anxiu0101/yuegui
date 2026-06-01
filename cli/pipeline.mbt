@@ -341,6 +341,9 @@ fn has_fatal(diagnostics : Array[@core.Diagnostic]) -> Bool {
 ///|
 /// Emit site: apply theme, write public/ files.
 fn emit_site(site : @core.Site) -> Unit {
+  // Copy theme assets to public/
+  @theme.copy_assets("theme", "public")
+
   let layouts = @theme.load_layouts("theme")
   let default_layout = match layouts.get("default") {
     Some(l) => l

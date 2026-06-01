@@ -62,3 +62,29 @@ fn find_last(s : String, sub : String) -> Int? {
   }
   None
 }
+
+///|
+/// Copy theme assets from theme/assets/ to public/assets/theme/.
+pub fn copy_assets(theme_path : String, public_dir : String) -> Unit {
+  let assets_source = "\{theme_path}/assets"
+  let assets_target = "\{public_dir}/assets/theme"
+  let files = try? @runtime.walk_dir(assets_source)
+  let files = match files {
+    Ok(f) => f
+    Err(_) => return
+  }
+  let prefix_len = assets_source.length() + 1
+  for file in files {
+    let rel_path = if file.length() > prefix_len {
+      file[prefix_len:].to_owned()
+    } else {
+      file
+    }
+    let dest = "\{assets_target}/\{rel_path}"
+    let content = try? @runtime.read_file(file)
+    match content {
+      Ok(c) => ignore(try? @runtime.write_file(dest, c))
+      Err(_) => ()
+    }
+  }
+}

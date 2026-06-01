@@ -8,6 +8,8 @@ pub fn bool(Bool) -> ContextValue
 
 pub fn context() -> TemplateContext
 
+pub fn copy_assets(String, String) -> Unit
+
 pub fn load_layouts(String) -> Map[String, String]
 
 pub fn render(String, TemplateContext) -> String
