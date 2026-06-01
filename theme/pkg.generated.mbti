@@ -2,13 +2,32 @@
 package "kozmosa/yuegui/theme"
 
 // Values
+pub fn arr(Array[Map[String, ContextValue]]) -> ContextValue
+
+pub fn bool(Bool) -> ContextValue
+
+pub fn context() -> TemplateContext
+
 pub fn load_layouts(String) -> Map[String, String]
 
-pub fn render_page(String, String) -> String
+pub fn render(String, TemplateContext) -> String
+
+pub fn set(TemplateContext, String, ContextValue) -> Unit
+
+pub fn str(String) -> ContextValue
 
 // Errors
 
 // Types and methods
+pub(all) enum ContextValue {
+  Str(String)
+  Bool(Bool)
+  Arr(Array[Map[String, ContextValue]])
+}
+
+pub struct TemplateContext {
+  vars : Map[String, ContextValue]
+}
 
 // Type aliases
 

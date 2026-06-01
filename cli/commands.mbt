@@ -63,7 +63,7 @@ fn handle_matches(matches : @argparse.Matches) -> Unit {
       let site = m.values.get_or_default("site", ["site"])[0]
       cmd_init(site)
     }
-    Some(("build", _)) => println("yuegui build")
+    Some(("build", _)) => run_build()
     Some(("dev", _)) => println("yuegui dev")
     Some(("check", _)) => run_check()
     Some(("new", new_m)) => handle_new(new_m)

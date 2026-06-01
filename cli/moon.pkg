@@ -3,6 +3,7 @@ import {
   "moonbitlang/core/builtin",
   "kozmosa/yuegui/core",
   "kozmosa/yuegui/runtime",
+  "kozmosa/yuegui/theme",
   "kozmosa/yuegui/format_markdown",
   "kozmosa/yuegui/format_typst",
 }
