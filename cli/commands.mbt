@@ -80,19 +80,25 @@ fn cmd_init(site_name : String) -> Unit {
 
   println("Creating site: \{site_name}")
   println("  \{site_dir}/yuegui.toml")
-  @runtime.write_file("\{site_dir}/yuegui.toml", toml_config(site_name))
+  let _ = try? @runtime.write_file(
+    "\{site_dir}/yuegui.toml",
+    toml_config(site_name),
+  )
 
   println("  \{site_dir}/content/index.md")
-  @runtime.write_file("\{site_dir}/content/index.md", index_markdown(site_name))
+  let _ = try? @runtime.write_file(
+    "\{site_dir}/content/index.md",
+    index_markdown(site_name),
+  )
 
   println("  \{site_dir}/theme/layouts/default.html")
-  @runtime.write_file(
+  let _ = try? @runtime.write_file(
     "\{site_dir}/theme/layouts/default.html",
     default_layout(),
   )
 
   println("  \{site_dir}/theme/assets/style.css")
-  @runtime.write_file(
+  let _ = try? @runtime.write_file(
     "\{site_dir}/theme/assets/style.css",
     default_stylesheet(),
   )

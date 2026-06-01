@@ -11,3 +11,7 @@ license = "Apache-2.0"
 keywords = [ "ssg", "static-site-generator", "markdown", "typst", "moonbit" ]
 
 description = "A MoonBit-native static site generator for technical publishing."
+
+import {
+  "moonbitlang/x@0.4.44",
+}

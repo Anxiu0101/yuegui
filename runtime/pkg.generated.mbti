@@ -1,16 +1,20 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "kozmosa/yuegui/runtime"
 
+import {
+  "moonbitlang/x/fs",
+}
+
 // Values
-pub fn read_file(String) -> String
+pub fn read_file(String) -> String raise @fs.IOError
 
 pub fn start_dev_server(String, Int, String) -> Unit
 
-pub fn walk_dir(String) -> Array[String]
+pub fn walk_dir(String) -> Array[String] raise @fs.IOError
 
 pub fn watch_dir(String, () -> Unit) -> Unit
 
-pub fn write_file(String, String) -> Unit
+pub fn write_file(String, String) -> Unit raise @fs.IOError
 
 // Errors
 
