@@ -9,7 +9,7 @@ pub fn dispatch() -> Unit {
   let matches = try? cmd.parse()
   match matches {
     Ok(m) => handle_matches(m)
-    Err(_) => () // parse failed (help/version already printed by argparse)
+    Err(_) => ()
   }
 }
 
@@ -57,7 +57,6 @@ fn build_parser() -> @argparse.Command {
 }
 
 ///|
-/// Handle the parsed matches — dispatch to command handlers.
 fn handle_matches(matches : @argparse.Matches) -> Unit {
   match matches.subcommand {
     Some(("init", m)) => {
@@ -66,7 +65,7 @@ fn handle_matches(matches : @argparse.Matches) -> Unit {
     }
     Some(("build", _)) => println("yuegui build")
     Some(("dev", _)) => println("yuegui dev")
-    Some(("check", _)) => println("yuegui check")
+    Some(("check", _)) => run_check()
     Some(("new", new_m)) => handle_new(new_m)
     Some((name, _)) => println("unknown command: \{name}")
     None => println("yuegui --help for usage")
@@ -74,45 +73,34 @@ fn handle_matches(matches : @argparse.Matches) -> Unit {
 }
 
 ///|
-/// Handle `yuegui init <site>`. Scaffolds the full project structure.
 fn cmd_init(site_name : String) -> Unit {
   let site_dir = site_name
-
   println("Creating site: \{site_name}")
-  println("  \{site_dir}/yuegui.toml")
   let _ = try? @runtime.write_file(
     "\{site_dir}/yuegui.toml",
     toml_config(site_name),
   )
-
-  println("  \{site_dir}/content/index.md")
   let _ = try? @runtime.write_file(
     "\{site_dir}/content/index.md",
     index_markdown(site_name),
   )
-
-  println("  \{site_dir}/theme/layouts/default.html")
   let _ = try? @runtime.write_file(
     "\{site_dir}/theme/layouts/default.html",
     default_layout(),
   )
-
-  println("  \{site_dir}/theme/assets/style.css")
   let _ = try? @runtime.write_file(
     "\{site_dir}/theme/assets/style.css",
     default_stylesheet(),
   )
-
   println("")
   println("Done! Run:")
   println("  cd \{site_dir}")
-  println("  yuegui dev        # start dev server")
-  println("  yuegui build      # build static site")
-  println("  yuegui check      # validate content")
+  println("  yuegui dev")
+  println("  yuegui build")
+  println("  yuegui check")
 }
 
 ///|
-/// Handle `yuegui new <sub>` sub-subcommands.
 fn handle_new(matches : @argparse.Matches) -> Unit {
   match matches.subcommand {
     Some(("page", m)) => {

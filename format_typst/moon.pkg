@@ -1,2 +1,4 @@
-// Format package: Typst adapter.
-// Will depend on `kozmosa/yuegui/core` when implementation begins.
+import {
+  "moonbitlang/core/builtin",
+  "kozmosa/yuegui/core",
+}

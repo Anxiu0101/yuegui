@@ -1,10 +1,14 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "kozmosa/yuegui/format_typst"
 
-// Values
-pub fn parse(String) -> String
+import {
+  "kozmosa/yuegui/core",
+}
 
-pub fn render(String) -> String
+// Values
+pub fn parse(@core.SourceDocument) -> @core.ParsedDocument
+
+pub fn render(@core.ParsedDocument) -> String
 
 // Errors
 

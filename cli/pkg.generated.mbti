@@ -10,6 +10,8 @@ pub fn dispatch() -> Unit
 
 pub fn index_markdown(String) -> String
 
+pub fn run_check() -> Unit
+
 pub fn toml_config(String) -> String
 
 // Errors
