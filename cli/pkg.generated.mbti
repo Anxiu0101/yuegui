@@ -14,6 +14,8 @@ pub fn run_build() -> Unit
 
 pub fn run_check() -> Unit
 
+pub fn run_dev() -> Unit
+
 pub fn toml_config(String) -> String
 
 // Errors

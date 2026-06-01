@@ -64,7 +64,7 @@ fn handle_matches(matches : @argparse.Matches) -> Unit {
       cmd_init(site)
     }
     Some(("build", _)) => run_build()
-    Some(("dev", _)) => println("yuegui dev")
+    Some(("dev", _)) => run_dev()
     Some(("check", _)) => run_check()
     Some(("new", new_m)) => handle_new(new_m)
     Some((name, _)) => println("unknown command: \{name}")

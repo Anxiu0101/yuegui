@@ -2,6 +2,19 @@
 /// Build/check pipeline: discover -> parse -> index -> validate -> report.
 
 ///|
+/// Run dev server: build + serve + watch for rebuild.
+pub fn run_dev() -> Unit {
+  // First build
+  println("dev: building site...")
+  run_build()
+  println("dev: initial build complete")
+
+  // Start file watcher (stub on wasm-gc)
+  @runtime.watch_dir("content", fn() { run_build() })
+  @runtime.start_dev_server("127.0.0.1", 3000, "public/")
+}
+
+///|
 /// Run a full build: discover -> parse -> index -> validate -> render -> theme -> emit.
 pub fn run_build() -> Unit {
   let content_dir = "content"
