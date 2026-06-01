@@ -349,13 +349,18 @@ fn emit_site(site : @core.Site) -> Unit {
     Some(l) => l
     None => get_default_layout()
   }
+  let post_layout = match layouts.get("post") {
+    Some(l) => l
+    None => get_post_layout()
+  }
 
   // For each page, render through theme and write
   for route, page in site.pages {
     let layout_name = page.metadata.layout
-    let page_layout = match layouts.get(layout_name) {
-      Some(l) => l
-      None => default_layout
+    let page_layout = if layout_name == "post" {
+      post_layout
+    } else {
+      default_layout
     }
     let page_ctx = build_template_context(site, Some(page))
     let html = @theme.render(page_layout, page_ctx)
@@ -383,9 +388,12 @@ fn emit_site(site : @core.Site) -> Unit {
 ///|
 /// Build manifest.json with page count and build metadata.
 fn build_manifest(site : @core.Site) -> String {
+  let count = site.routes.length()
   let buf = @builtin.StringBuilder::new()
   buf.write_string("{\n")
-  buf.write_string("  \"pages\": \{site.routes.length()},\n")
+  buf.write_string("  \"pages\": ")
+  buf.write_string(count.to_string())
+  buf.write_string(",\n")
   buf.write_string("  \"updated\": \"2026-06-01\",\n")
   buf.write_string("  \"generator\": \"yuegui 0.1.0\"\n")
   buf.write_string("}\n")
@@ -393,15 +401,81 @@ fn build_manifest(site : @core.Site) -> String {
 }
 
 ///|
-/// Build the default layout template string.
+/// Build the default layout template string (flat keys).
 fn get_default_layout() -> String {
   let b = @builtin.StringBuilder::new()
   b.write_string("<!DOCTYPE html>\n")
-  b.write_string("<html lang=\"en\">\n")
-  b.write_string("<head><meta charset=\"UTF-8\">\n")
-  b.write_string("<title>{{ page_title }} - {{ site_title }}</title></head>\n")
-  b.write_string("<body><main>{{ page_content }}</main></body>\n")
-  b.write_string("</html>\n")
+  b.write_string("<html lang=\"{{ site_language }}\">\n")
+  b.write_string("<head>\n")
+  b.write_string("  <meta charset=\"UTF-8\">\n")
+  b.write_string(
+    "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n",
+  )
+  b.write_string("  <title>{{ page_title }} - {{ site_title }}</title>\n")
+  b.write_string("  {{#if page_description}}\n")
+  b.write_string(
+    "  <meta name=\"description\" content=\"{{ page_description }}\">\n",
+  )
+  b.write_string("  {{/if}}\n")
+  b.write_string(
+    "  <link rel=\"stylesheet\" href=\"/assets/theme/style.css\">\n",
+  )
+  b.write_string("</head>\n")
+  b.write_string("<body>\n")
+  b.write_string(
+    "  <header><nav><a href=\"/\">{{ site_title }}</a></nav></header>\n",
+  )
+  b.write_string("  <main><article>{{ page_content }}</article></main>\n")
+  b.write_string(
+    "  <footer><p>Built with <a href=\"https://github.com/kozmosa/yuegui\">Yuegui</a>.</p></footer>\n",
+  )
+  b.write_string("</body>\n</html>\n")
+  b.to_string()
+}
+
+///|
+/// Build a post layout template with date/author header.
+fn get_post_layout() -> String {
+  let b = @builtin.StringBuilder::new()
+  b.write_string("<!DOCTYPE html>\n")
+  b.write_string("<html lang=\"{{ site_language }}\">\n")
+  b.write_string("<head>\n")
+  b.write_string("  <meta charset=\"UTF-8\">\n")
+  b.write_string(
+    "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n",
+  )
+  b.write_string("  <title>{{ page_title }} - {{ site_title }}</title>\n")
+  b.write_string("  {{#if page_description}}\n")
+  b.write_string(
+    "  <meta name=\"description\" content=\"{{ page_description }}\">\n",
+  )
+  b.write_string("  {{/if}}\n")
+  b.write_string(
+    "  <link rel=\"stylesheet\" href=\"/assets/theme/style.css\">\n",
+  )
+  b.write_string("</head>\n")
+  b.write_string("<body>\n")
+  b.write_string(
+    "  <header><nav><a href=\"/\">{{ site_title }}</a> <a href=\"/blog/\">Blog</a></nav></header>\n",
+  )
+  b.write_string("  <main>\n")
+  b.write_string("    <article class=\"post\">\n")
+  b.write_string("      <header class=\"post-header\">\n")
+  b.write_string("        <h1>{{ page_title }}</h1>\n")
+  b.write_string(
+    "        {{#if page_date}}<time>{{ page_date }}</time>{{/if}}\n",
+  )
+  b.write_string(
+    "        {{#if page_author}}<span class=\"author\">by {{ page_author }}</span>{{/if}}\n",
+  )
+  b.write_string("      </header>\n")
+  b.write_string("      <div class=\"post-content\">{{ page_content }}</div>\n")
+  b.write_string("    </article>\n")
+  b.write_string("  </main>\n")
+  b.write_string(
+    "  <footer><p>Built with <a href=\"https://github.com/kozmosa/yuegui\">Yuegui</a>.</p></footer>\n",
+  )
+  b.write_string("</body>\n</html>\n")
   b.to_string()
 }
 
@@ -431,6 +505,18 @@ fn build_template_context(
       @theme.set(ctx, "page_title", @theme.str(p.title))
       @theme.set(ctx, "page_content", @theme.str(p.content_html))
       @theme.set(ctx, "page_route", @theme.str(p.route))
+      match p.metadata.description {
+        Some(d) => @theme.set(ctx, "page_description", @theme.str(d))
+        None => ()
+      }
+      match p.metadata.date {
+        Some(d) => @theme.set(ctx, "page_date", @theme.str(d))
+        None => ()
+      }
+      match p.metadata.author {
+        Some(a) => @theme.set(ctx, "page_author", @theme.str(a))
+        None => ()
+      }
     }
     None => ()
   }

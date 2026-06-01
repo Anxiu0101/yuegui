@@ -67,28 +67,90 @@ pub fn index_markdown(site_name : String) -> String {
 pub fn default_layout() -> String {
   let buf = @builtin.StringBuilder::new()
   buf.write_string("<!DOCTYPE html>\n")
-  buf.write_string("<html lang=\"{{ site.language }}\">\n")
+  buf.write_string("<html lang=\"{{ site_language }}\">\n")
   buf.write_string("<head>\n")
   buf.write_string("  <meta charset=\"UTF-8\">\n")
   buf.write_string(
     "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n",
   )
-  buf.write_string("  <title>{{ page.title }} — {{ site.title }}</title>\n")
-  buf.write_string("  {{#if page.metadata.description }}\n")
+  buf.write_string("  <title>{{ page_title }} — {{ site_title }}</title>\n")
+  buf.write_string("  {{#if page_description}}\n")
   buf.write_string(
-    "  <meta name=\"description\" content=\"{{ page.metadata.description }}\">\n",
+    "  <meta name=\"description\" content=\"{{ page_description }}\">\n",
   )
   buf.write_string("  {{/if}}\n")
+  buf.write_string(
+    "  <link rel=\"stylesheet\" href=\"/assets/theme/style.css\">\n",
+  )
   buf.write_string("</head>\n")
   buf.write_string("<body>\n")
   buf.write_string("  <header>\n")
   buf.write_string("    <nav>\n")
-  buf.write_string("      <a href=\"/\">{{ site.title }}</a>\n")
+  buf.write_string("      <a href=\"/\">{{ site_title }}</a>\n")
+  buf.write_string("      {{#each site_pages}}\n")
+  buf.write_string("        {{#if weight}}\n")
+  buf.write_string("          <a href=\"{{ route }}\">{{ title }}</a>\n")
+  buf.write_string("        {{/if}}\n")
+  buf.write_string("      {{/each}}\n")
   buf.write_string("    </nav>\n")
   buf.write_string("  </header>\n")
   buf.write_string("  <main>\n")
   buf.write_string("    <article>\n")
-  buf.write_string("      {{ page.content }}\n")
+  buf.write_string("      {{ page_content }}\n")
+  buf.write_string("    </article>\n")
+  buf.write_string("  </main>\n")
+  buf.write_string("  <footer>\n")
+  buf.write_string(
+    "    <p>Built with <a href=\"https://github.com/kozmosa/yuegui\">Yuegui</a>.</p>\n",
+  )
+  buf.write_string("  </footer>\n")
+  buf.write_string("</body>\n")
+  buf.write_string("</html>\n")
+  buf.to_string()
+}
+
+///|
+/// Template for theme/layouts/post.html.
+pub fn post_layout() -> String {
+  let buf = @builtin.StringBuilder::new()
+  buf.write_string("<!DOCTYPE html>\n")
+  buf.write_string("<html lang=\"{{ site_language }}\">\n")
+  buf.write_string("<head>\n")
+  buf.write_string("  <meta charset=\"UTF-8\">\n")
+  buf.write_string(
+    "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n",
+  )
+  buf.write_string("  <title>{{ page_title }} — {{ site_title }}</title>\n")
+  buf.write_string("  {{#if page_description}}\n")
+  buf.write_string(
+    "  <meta name=\"description\" content=\"{{ page_description }}\">\n",
+  )
+  buf.write_string("  {{/if}}\n")
+  buf.write_string(
+    "  <link rel=\"stylesheet\" href=\"/assets/theme/style.css\">\n",
+  )
+  buf.write_string("</head>\n")
+  buf.write_string("<body>\n")
+  buf.write_string("  <header>\n")
+  buf.write_string("    <nav>\n")
+  buf.write_string("      <a href=\"/\">{{ site_title }}</a>\n")
+  buf.write_string("      <a href=\"/blog/\">Blog</a>\n")
+  buf.write_string("    </nav>\n")
+  buf.write_string("  </header>\n")
+  buf.write_string("  <main>\n")
+  buf.write_string("    <article class=\"post\">\n")
+  buf.write_string("      <header class=\"post-header\">\n")
+  buf.write_string("        <h1>{{ page_title }}</h1>\n")
+  buf.write_string(
+    "        {{#if page_date}}<time>{{ page_date }}</time>{{/if}}\n",
+  )
+  buf.write_string(
+    "        {{#if page_author}}<span class=\"author\">by {{ page_author }}</span>{{/if}}\n",
+  )
+  buf.write_string("      </header>\n")
+  buf.write_string(
+    "      <div class=\"post-content\">{{ page_content }}</div>\n",
+  )
   buf.write_string("    </article>\n")
   buf.write_string("  </main>\n")
   buf.write_string("  <footer>\n")

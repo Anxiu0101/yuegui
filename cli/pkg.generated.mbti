@@ -12,6 +12,8 @@ pub fn index_markdown(String) -> String
 
 pub fn page_template(String) -> String
 
+pub fn post_layout() -> String
+
 pub fn post_template(String) -> String
 
 pub fn run_build() -> Unit
