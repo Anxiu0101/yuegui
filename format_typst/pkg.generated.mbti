@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn detect_mode(String) -> @core.RenderMode
+
 pub fn parse(@core.SourceDocument) -> @core.ParsedDocument
 
 pub fn render(@core.ParsedDocument) -> String

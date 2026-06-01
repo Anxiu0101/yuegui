@@ -230,3 +230,16 @@ fn find_substr(s : String, sub : String, start : Int) -> Int? {
   }
   None
 }
+
+///|
+/// Detect render mode from a config string.
+/// Valid: "semantic-html", "svg-embed", "artifact"
+pub fn detect_mode(config_mode : String) -> @core.RenderMode {
+  if config_mode == "svg-embed" {
+    @core.RenderMode::SvgEmbed
+  } else if config_mode == "artifact" {
+    @core.RenderMode::Artifact
+  } else {
+    @core.RenderMode::SemanticHtml
+  }
+}

@@ -2,6 +2,67 @@
 /// Build/check pipeline: discover -> parse -> index -> validate -> report.
 
 ///|
+/// Load Typst render mode from yuegui.toml. Returns "semantic-html" on failure.
+fn load_typst_mode() -> String {
+  let content = try? @runtime.read_file("yuegui.toml")
+  let config_text = match content {
+    Ok(c) => c
+    Err(_) => return "semantic-html"
+  }
+  extract_typst_field(config_text, "mode", "semantic-html")
+}
+
+///|
+/// Load Typst fallback mode from yuegui.toml.
+fn load_typst_fallback() -> String {
+  let content = try? @runtime.read_file("yuegui.toml")
+  let config_text = match content {
+    Ok(c) => c
+    Err(_) => return "svg-embed"
+  }
+  extract_typst_field(config_text, "fallback", "svg-embed")
+}
+
+///|
+/// Extract a field from the [typst] section of yuegui.toml.
+fn extract_typst_field(
+  config : String,
+  field : String,
+  default : String,
+) -> String {
+  let section_pos = config.find("[typst]")
+  match section_pos {
+    None => return default
+    Some(sp) => {
+      let after_section = config[sp + 7:].to_owned()
+      let search_key = "\{field} = "
+      let key_pos = after_section.find(search_key)
+      match key_pos {
+        None => return default
+        Some(kp) => {
+          let after_equals = after_section[kp + search_key.length():].to_owned()
+          if after_equals.has_prefix("\"") {
+            let inner = after_equals[1:].to_owned()
+            let close = inner.find("\"")
+            match close {
+              Some(cp) => inner[0:cp].to_owned()
+              None => default
+            }
+          } else {
+            let trimmed = after_equals.trim().to_owned()
+            let end = trimmed.find("\n")
+            match end {
+              Some(e) => trimmed[0:e].trim().to_owned()
+              None => trimmed.trim().to_owned()
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+///|
 /// Run dev server: build + serve + watch for rebuild.
 pub fn run_dev() -> Unit {
   // First build
@@ -67,6 +128,12 @@ pub fn run_build() -> Unit {
     println("build: stopping due to validation errors")
     return
   }
+
+  // Print Typst render mode
+  let mode = load_typst_mode()
+  let fallback = load_typst_fallback()
+  let msg = "build: typst mode=\"" + mode + "\" (fallback=\"" + fallback + "\")"
+  println(msg)
 
   // 6-7. Apply theme and emit
   emit_site(site)
