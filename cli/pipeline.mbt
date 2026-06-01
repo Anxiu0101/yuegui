@@ -341,32 +341,38 @@ fn has_fatal(diagnostics : Array[@core.Diagnostic]) -> Bool {
 ///|
 /// Emit site: apply theme, write public/ files.
 fn emit_site(site : @core.Site) -> Unit {
-  // 1. Create output directory
-  let _ = try? @runtime.write_file("public/", "")
-
-  // 2. For each page, render through theme and write
-  let layout = get_default_layout()
-
-  for route, page in site.pages {
-    // create page-specific context
-    let page_ctx = build_template_context(site, Some(page))
-    let html = @theme.render(layout, page_ctx)
-    // write to public/{route}/index.html
-    let output_path = "public\{route}index.html"
-    let _ = try? @runtime.write_file(output_path, html)
+  let layouts = @theme.load_layouts("theme")
+  let default_layout = match layouts.get("default") {
+    Some(l) => l
+    None => get_default_layout()
   }
 
-  // 3. Emit sitemap
-  let _ = try? @runtime.write_file("public/sitemap.xml", build_sitemap(site))
+  // For each page, render through theme and write
+  for route, page in site.pages {
+    let layout_name = page.metadata.layout
+    let page_layout = match layouts.get(layout_name) {
+      Some(l) => l
+      None => default_layout
+    }
+    let page_ctx = build_template_context(site, Some(page))
+    let html = @theme.render(page_layout, page_ctx)
+    let output_path = "public\{route}index.html"
+    ignore(try? @runtime.write_file(output_path, html))
+  }
 
-  // 4. Emit search index
-  let _ = try? @runtime.write_file(
-    "public/search-index.json",
-    build_search_index(site),
+  // Sitemap
+  ignore(try? @runtime.write_file("public/sitemap.xml", build_sitemap(site)))
+
+  // Search index
+  ignore(
+    try? @runtime.write_file(
+      "public/search-index.json",
+      build_search_index(site),
+    ),
   )
 
-  // 5. Emit manifest.json
-  let _ = try? @runtime.write_file("public/manifest.json", build_manifest(site))
+  // Manifest
+  ignore(try? @runtime.write_file("public/manifest.json", build_manifest(site)))
 
   println("build: site emitted to public/")
 }
