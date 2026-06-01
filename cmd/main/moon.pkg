@@ -1,6 +1,6 @@
-// import {
-//   "kozmosa/yuegui" @lib,
-// }
+import {
+  "kozmosa/yuegui/cli",
+}
 
 options(
   "is-main": true,

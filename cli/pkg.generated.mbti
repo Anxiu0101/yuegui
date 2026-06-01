@@ -2,7 +2,7 @@
 package "kozmosa/yuegui/cli"
 
 // Values
-pub fn dispatch(Array[String]) -> Unit
+pub fn dispatch() -> Unit
 
 // Errors
 
