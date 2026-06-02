@@ -1,53 +1,73 @@
-# Project Agents.md Guide
+# Yuegui Project Guide
 
-This is a [MoonBit](https://docs.moonbitlang.com) project.
+Module: `Anxiu0101/yuegui` — MoonBit-native static site generator.
 
-You can browse and install extra skills here:
-<https://github.com/moonbitlang/skills>
+Installed MoonBit skills (read these before guessing MoonBit behavior):
+- `.agents/skills/moonbit-agent-guide/SKILL.md` — project layout, tooling, testing
+- `.agents/skills/moonbit-orientation/SKILL.md` — language/toolchain orientation
+- `.agents/skills/moonbit-c-binding/SKILL.md` — C FFI
+- `.agents/skills/moonbit-refactoring/SKILL.md` — refactoring patterns
+- `.agents/skills/moonbit-extract-spec-test/SKILL.md` — spec-driven testing
 
 ## Project Structure
 
-- MoonBit packages are organized per directory; each directory contains a
-  `moon.pkg` file listing its dependencies. Each package has its files and
-  blackbox test files (ending in `_test.mbt`) and whitebox test files (ending in
-  `_wbtest.mbt`).
+```
+yuegui/
+  moon.mod             → module metadata + dependencies
+  moon.pkg             → root package (re-exports dispatch for @yuegui.dispatch)
+  yuegui.mbt           → root package: pub fn dispatch(config: SiteConfig)
+  cmd/main/main.mbt    → dev entry: @cli.dispatch(@core.default_site_config())
+  cmd/main/moon.pkg    → is-main: true
+  core/                → pure content model, SiteConfig, diagnostics
+  cli/                 → command parsing + build pipeline
+  runtime/             → filesystem I/O via moonbitlang/x/fs
+  theme/               → template engine + asset copier
+  format_markdown/     → Markdown parser/renderer
+  format_typst/        → Typst adapter (experimental stub)
+```
 
-- In the toplevel directory, there is a `moon.mod` file listing module
-  metadata.
+Key architectural decisions (documented in `docs/development-logs/`):
+- **Config in code**: no `yuegui.toml` — `SiteConfig` is a MoonBit struct passed to `@yuegui.dispatch({...})` in user's `main.mbt`
+- **WASM by default**: `moon run . -- build` uses WASM backend, no C compiler needed, file I/O works via WASI
+- **Native only for serve**: HTTP preview server needs C FFI (socket/thread); `build`/`check`/`init` all work on WASM
+- **User site is a MoonBit project**: `my-site/` has `moon.mod` + `main.mbt` + `moon.pkg`, depends on `Anxiu0101/yuegui`
 
-## Coding convention
+## Essential Commands
 
-- MoonBit code is organized in block style, each block is separated by `///|`,
-  the order of each block is irrelevant. In some refactorings, you can process
-  block by block independently.
+### Engine development (inside yuegui/)
 
-- Try to keep deprecated blocks in file called `deprecated.mbt` in each
-  directory.
+```bash
+moon run cmd/main -- build        # build demo content
+moon run cmd/main -- check        # validate only
+moon run cmd/main -- init x       # test scaffolding
+moon run --target native cmd/main -- serve  # preview server
+moon check                        # type-check all packages
+moon test                         # run tests
+moon info && moon fmt             # regenerate .mbti + format
+```
 
-## Tooling
+### User site workflow (inside my-site/)
 
-- `moon fmt` is used to format your code properly.
+```bash
+yuegui build    # = moon run . -- build (WASM)
+yuegui check    # = moon run . -- check
+yuegui dev      # = moon run --target native . -- serve
+```
 
-- `moon ide` provides project navigation helpers like `peek-def`, `outline`, and
-  `find-references`. See $moonbit-agent-guide for details.
+## Validation Loop
 
-- `moon info` is used to update the generated interface of the package, each
-  package has a generated interface file `.mbti`, it is a brief formal
-  description of the package. If nothing in `.mbti` changes, this means your
-  change does not bring the visible changes to the external package users, it is
-  typically a safe refactoring.
+1. `moon check` — fast type-checking
+2. `moon test` — run tests (use `--update` for snapshot changes)
+3. `moon info && moon fmt` — regenerate interfaces + format
+4. Review `pkg.generated.mbti` diffs to verify API changes are intentional
 
-- In the last step, run `moon info && moon fmt` to update the interface and
-  format the code. Check the diffs of `.mbti` file to see if the changes are
-  expected.
+## Dependencies
 
-- Run `moon test` to check tests pass. MoonBit supports snapshot testing; when
-  changes affect outputs, run `moon test --update` to refresh snapshots.
+- `moonbitlang/x@0.4.44` — filesystem I/O (`@fs`)
+- `moonbitlang/core` — standard library (always available)
+- `moonbitlang/core/argparse` — CLI argument parsing
 
-- Prefer `assert_eq` or `assert_true(pattern is Pattern(...))` for results that
-  are stable or very unlikely to change. For snapshot tests that record
-  structured debugging output, derive `Debug` and use `debug_inspect`, rather
-  than deriving `Show` for debugging. For solid, well-defined results (e.g.
-  scientific computations), prefer assertion tests. You can use
-  `moon coverage analyze > uncovered.log` to see which parts of your code are
-  not covered by tests.
+## Development Log
+
+Significant bugs, architectural decisions, and course corrections are recorded in:
+- `docs/development-logs/moonbit-windows-native-compilation.md`
