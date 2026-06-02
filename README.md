@@ -4,9 +4,10 @@
 
 [![Module](https://img.shields.io/badge/module-Anxiu0101%2Fyuegui-blue)](https://github.com/Anxiu0101/yuegui)
 
-Yuegui treats Markdown (stable) and Typst (experimental) as first-class source
-formats in a shared site graph. It provides strong build-time diagnostics and
+Yuegui treats Markdown (stable) and Typst (experimental) as first-class source formats in a shared site graph. It provides strong build-time diagnostics and
 emits fast static HTML.
+
+![example page](./public/yuegui.jpg)
 
 ## Prerequisites
 
