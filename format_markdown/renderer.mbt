@@ -1,6 +1,6 @@
 ///|
 /// Markdown RenderAdapter — converts parsed Markdown body to HTML.
-/// Supports: headings, paragraphs, bold, italic, code, links, lists, code blocks.
+/// Supports: headings, paragraphs, bold, italic, code, links, lists, code blocks, tables.
 
 ///|
 /// Render a ParsedDocument body to HTML.
@@ -43,6 +43,15 @@ pub fn render(parsed : @core.ParsedDocument) -> String {
     if line == "---" || line == "***" || line == "___" {
       buf.write_string("<hr>\n")
       i = i + 1
+      continue
+    }
+    // table
+    if line.has_prefix("|") {
+      let table_start = i
+      while i < len && lines[i].has_prefix("|") {
+        i = i + 1
+      }
+      render_table(lines, table_start, i, buf)
       continue
     }
     // unordered list
@@ -276,4 +285,77 @@ fn escape_html(s : String) -> String {
     }
   }
   buf.to_string()
+}
+
+///|
+/// Render a markdown table from consecutive | lines.
+fn render_table(
+  lines : Array[String],
+  start : Int,
+  end : Int,
+  buf : @builtin.StringBuilder,
+) -> Unit {
+  buf.write_string("<table>\n")
+  if start < end {
+    let sep_pos = if start + 1 < end {
+      is_table_separator(lines[start + 1])
+    } else {
+      false
+    }
+    buf.write_string("  <tr>\n")
+    let cells = split_table_row(lines[start])
+    for cell in cells {
+      buf.write_string("    <th>")
+      buf.write_string(render_inline(cell.trim().to_owned()))
+      buf.write_string("</th>\n")
+    }
+    buf.write_string("  </tr>\n")
+    let body_start = if sep_pos { start + 2 } else { start + 1 }
+    for row = body_start; row < end; row = row + 1 {
+      buf.write_string("  <tr>\n")
+      let cells = split_table_row(lines[row])
+      for cell in cells {
+        buf.write_string("    <td>")
+        buf.write_string(render_inline(cell.trim().to_owned()))
+        buf.write_string("</td>\n")
+      }
+      buf.write_string("  </tr>\n")
+    }
+  }
+  buf.write_string("</table>\n")
+}
+
+///|
+/// Check if a line is a table separator (e.g. |---|---|---|).
+fn is_table_separator(line : String) -> Bool {
+  for i = 0; i < line.length(); i = i + 1 {
+    let ch = line[i:i + 1]
+    if ch != "|" && ch != "-" && ch != " " && ch != ":" {
+      return false
+    }
+  }
+  true
+}
+
+///|
+/// Split a table row like |a|b|c| into ["a", "b", "c"].
+fn split_table_row(line : String) -> Array[String] {
+  let result : Array[String] = []
+  let len = line.length()
+  let mut i = 0
+  while i < len && line[i:i + 1] == "|" {
+    i = i + 1
+  }
+  let mut cell_start = i
+  while i < len {
+    if line[i:i + 1] == "|" {
+      result.push(line[cell_start:i].to_owned())
+      cell_start = i + 1
+    }
+    i = i + 1
+  }
+  if cell_start < len {
+    result.push(line[cell_start:].to_owned())
+  }
+  result
 }

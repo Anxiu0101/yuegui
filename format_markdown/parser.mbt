@@ -4,11 +4,17 @@
 ///|
 /// Parse a Markdown source document into a ParsedDocument.
 pub fn parse(source : @core.SourceDocument) -> @core.ParsedDocument {
-  let (frontmatter_extra, body) = split_frontmatter(source.body)
+  let (frontmatter_extra, clean_body) = split_frontmatter(source.body)
+  let parsed_source : @core.SourceDocument = {
+    path: source.path,
+    format: source.format,
+    frontmatter: source.frontmatter,
+    body: clean_body,
+  }
   let merged = merge_frontmatter(source.frontmatter, frontmatter_extra)
   let meta = extract_metadata(merged)
-  let headings = extract_headings(body)
-  let links = extract_wikilinks(body)
+  let headings = extract_headings(clean_body)
+  let links = extract_wikilinks(clean_body)
 
   let has_title = meta.title != ""
   let title = if has_title {
@@ -27,7 +33,7 @@ pub fn parse(source : @core.SourceDocument) -> @core.ParsedDocument {
   }
 
   {
-    source,
+    source: parsed_source,
     title,
     headings,
     links,
@@ -38,20 +44,31 @@ pub fn parse(source : @core.SourceDocument) -> @core.ParsedDocument {
 }
 
 ///|
-/// Split frontmatter from body.
+/// Split frontmatter from body. Accepts both --- and +++ delimiters.
 fn split_frontmatter(input : String) -> (Map[String, String], String) {
   let result : Map[String, String] = {}
-  if !input.has_prefix("+++\n") {
+  let delim = if input.has_prefix("---\n") {
+    "---"
+  } else if input.has_prefix("+++\n") {
+    "+++"
+  } else {
+    ""
+  }
+  let delim_len = delim.length()
+  if delim_len == 0 {
     return (result, input)
   }
-  // find closing +++
-  let rest = input
-  let close_pos = rest.after("\n+++\n")
+  // opening delimiter is at position 0, length delim_len + 1 (including \n)
+  // frontmatter text starts at delim_len + 1
+  // closing delimiter is \n + delim + \n = delim_len + 2 chars
+  let close_pos = input.after("\n" + delim + "\n")
   match close_pos {
-    Some(after_close) => {
-      let fm_len = rest.length() - 3 - after_close.length() - 4
-      let fm_text = rest[4:4 + fm_len].to_owned()
-      let body = rest[4 + fm_len + 4:].to_owned()
+    Some(after) => {
+      let body_start = input.length() - after.length()
+      let fm_start = delim_len + 1
+      let fm_end = body_start - delim_len - 2
+      let fm_text = input[fm_start:fm_end].to_owned()
+      let body = input[body_start:].to_owned()
       (parse_toml_lines(fm_text), body)
     }
     None => (result, input)
@@ -163,7 +180,11 @@ fn extract_headings(body : String) -> Array[@core.Heading] {
       result.push({ level, text, id: slug })
       i = text_end
     } else {
-      i = j
+      let mut eol = j + 1
+      while eol < len && body[eol:eol + 1] != "\n" {
+        eol = eol + 1
+      }
+      i = eol
     }
   }
   result
