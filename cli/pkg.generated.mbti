@@ -1,14 +1,32 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "kozmosa/yuegui/cli"
+package "Anxiu0101/yuegui/cli"
+
+import {
+  "Anxiu0101/yuegui/core",
+}
 
 // Values
 pub fn default_layout() -> String
 
 pub fn default_stylesheet() -> String
 
-pub fn dispatch() -> Unit
+pub fn dispatch(@core.SiteConfig) -> Unit
 
 pub fn index_markdown(String) -> String
+
+pub fn init_gitignore() -> String
+
+pub fn init_main_mbt(String) -> String
+
+pub fn init_moon_mod(String) -> String
+
+pub fn init_moon_pkg() -> String
+
+pub fn init_yuegui_bat() -> String
+
+pub fn init_yuegui_ps1() -> String
+
+pub fn init_yuegui_sh() -> String
 
 pub fn page_template(String) -> String
 
@@ -16,13 +34,11 @@ pub fn post_layout() -> String
 
 pub fn post_template(String) -> String
 
-pub fn run_build() -> Unit
+pub fn run_build(@core.SiteConfig) -> Unit
 
-pub fn run_check() -> Unit
+pub fn run_check(@core.SiteConfig) -> Unit
 
-pub fn run_dev() -> Unit
-
-pub fn toml_config(String) -> String
+pub fn run_dev(@core.SiteConfig) -> Unit
 
 // Errors
 

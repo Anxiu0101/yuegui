@@ -2,35 +2,81 @@
 /// Default scaffold templates for `yuegui init`.
 
 ///|
-/// Template for yuegui.toml.
-pub fn toml_config(site_name : String) -> String {
+/// Template for moon.mod.
+pub fn init_moon_mod(site_name : String) -> String {
   let buf = @builtin.StringBuilder::new()
-  buf.write_string("[site]\n")
-  buf.write_string("title = \"\{site_name}\"\n")
-  buf.write_string("base_url = \"https://example.com\"\n")
-  buf.write_string("language = \"en\"\n")
+  buf.write_string("name = \"\{site_name}\"\n")
   buf.write_string("\n")
-  buf.write_string("[content]\n")
-  buf.write_string("source = \"content\"\n")
-  buf.write_string("include = [\"*.md\", \"*.typ\"]\n")
+  buf.write_string("version = \"0.1.0\"\n")
   buf.write_string("\n")
-  buf.write_string("[theme]\n")
-  buf.write_string("name = \"default\"\n")
-  buf.write_string("path = \"theme\"\n")
-  buf.write_string("\n")
-  buf.write_string("[typst]\n")
-  buf.write_string("enabled = true\n")
-  buf.write_string("mode = \"semantic-html\"\n")
-  buf.write_string("fallback = \"svg-embed\"\n")
-  buf.write_string("\n")
-  buf.write_string("[build]\n")
-  buf.write_string("output = \"public\"\n")
-  buf.write_string("clean_output = true\n")
-  buf.write_string("\n")
-  buf.write_string("[dev]\n")
-  buf.write_string("port = 3000\n")
-  buf.write_string("host = \"127.0.0.1\"\n")
+  buf.write_string("import {\n")
+  buf.write_string("  \"Anxiu0101/yuegui\",\n")
+  buf.write_string("}\n")
   buf.to_string()
+}
+
+///|
+/// Template for moon.pkg.
+pub fn init_moon_pkg() -> String {
+  let buf = @builtin.StringBuilder::new()
+  buf.write_string("import {\n")
+  buf.write_string("  \"Anxiu0101/yuegui\",\n")
+  buf.write_string("}\n")
+  buf.write_string("\n")
+  buf.write_string("options(\n")
+  buf.write_string("  \"is-main\": true,\n")
+  buf.write_string(")\n")
+  buf.to_string()
+}
+
+///|
+/// Template for main.mbt.
+pub fn init_main_mbt(site_name : String) -> String {
+  let buf = @builtin.StringBuilder::new()
+  buf.write_string("fn main {\n")
+  buf.write_string("  @yuegui.dispatch({\n")
+  buf.write_string("    title: \"\{site_name}\",\n")
+  buf.write_string("    base_url: \"\",\n")
+  buf.write_string("    language: \"en\",\n")
+  buf.write_string("    source_dir: \"content\",\n")
+  buf.write_string("    theme_dir: \"theme\",\n")
+  buf.write_string("    output_dir: \"public\",\n")
+  buf.write_string("    typst_mode: \"semantic-html\",\n")
+  buf.write_string("    typst_fallback: \"svg-embed\",\n")
+  buf.write_string("    dev_port: 3000,\n")
+  buf.write_string("    dev_host: \"127.0.0.1\",\n")
+  buf.write_string("  })\n")
+  buf.write_string("}\n")
+  buf.to_string()
+}
+
+///|
+/// Template for .gitignore.
+pub fn init_gitignore() -> String {
+  let buf = @builtin.StringBuilder::new()
+  buf.write_string("_build/\n")
+  buf.write_string(".mooncakes/\n")
+  buf.write_string("public/\n")
+  buf.write_string("*.exe\n")
+  buf.to_string()
+}
+
+///|
+/// Template for yuegui.bat.
+pub fn init_yuegui_bat() -> String {
+  "@echo off\r\nmoon run . -- %*\r\n"
+}
+
+///|
+/// Template for yuegui.sh.
+pub fn init_yuegui_sh() -> String {
+  "#!/bin/sh\nexec moon run . -- \"$@\"\n"
+}
+
+///|
+/// Template for yuegui.ps1.
+pub fn init_yuegui_ps1() -> String {
+  "moon run . -- @args\n"
 }
 
 ///|
@@ -45,7 +91,7 @@ pub fn index_markdown(site_name : String) -> String {
   buf.write_string("# Welcome to \{site_name}\n")
   buf.write_string("\n")
   buf.write_string(
-    "This site was built with **[Yuegui](https://github.com/kozmosa/yuegui)**.\n",
+    "This site was built with **[Yuegui](https://github.com/Anxiu0101/yuegui)**.\n",
   )
   buf.write_string("\n")
   buf.write_string("## Getting Started\n")
@@ -101,7 +147,7 @@ pub fn default_layout() -> String {
   buf.write_string("  </main>\n")
   buf.write_string("  <footer>\n")
   buf.write_string(
-    "    <p>Built with <a href=\"https://github.com/kozmosa/yuegui\">Yuegui</a>.</p>\n",
+    "    <p>Built with <a href=\"https://github.com/Anxiu0101/yuegui\">Yuegui</a>.</p>\n",
   )
   buf.write_string("  </footer>\n")
   buf.write_string("</body>\n")
@@ -155,7 +201,7 @@ pub fn post_layout() -> String {
   buf.write_string("  </main>\n")
   buf.write_string("  <footer>\n")
   buf.write_string(
-    "    <p>Built with <a href=\"https://github.com/kozmosa/yuegui\">Yuegui</a>.</p>\n",
+    "    <p>Built with <a href=\"https://github.com/Anxiu0101/yuegui\">Yuegui</a>.</p>\n",
   )
   buf.write_string("  </footer>\n")
   buf.write_string("</body>\n")

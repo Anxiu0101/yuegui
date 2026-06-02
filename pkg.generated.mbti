@@ -1,7 +1,12 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "kozmosa/yuegui"
+package "Anxiu0101/yuegui"
+
+import {
+  "Anxiu0101/yuegui/core",
+}
 
 // Values
+pub fn dispatch(@core.SiteConfig) -> Unit
 
 // Errors
 

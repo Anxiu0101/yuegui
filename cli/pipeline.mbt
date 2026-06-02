@@ -2,83 +2,20 @@
 /// Build/check pipeline: discover -> parse -> index -> validate -> report.
 
 ///|
-/// Load Typst render mode from yuegui.toml. Returns "semantic-html" on failure.
-fn load_typst_mode() -> String {
-  let content = try? @runtime.read_file("yuegui.toml")
-  let config_text = match content {
-    Ok(c) => c
-    Err(_) => return "semantic-html"
-  }
-  extract_typst_field(config_text, "mode", "semantic-html")
-}
-
-///|
-/// Load Typst fallback mode from yuegui.toml.
-fn load_typst_fallback() -> String {
-  let content = try? @runtime.read_file("yuegui.toml")
-  let config_text = match content {
-    Ok(c) => c
-    Err(_) => return "svg-embed"
-  }
-  extract_typst_field(config_text, "fallback", "svg-embed")
-}
-
-///|
-/// Extract a field from the [typst] section of yuegui.toml.
-fn extract_typst_field(
-  config : String,
-  field : String,
-  default : String,
-) -> String {
-  let section_pos = config.find("[typst]")
-  match section_pos {
-    None => return default
-    Some(sp) => {
-      let after_section = config[sp + 7:].to_owned()
-      let search_key = "\{field} = "
-      let key_pos = after_section.find(search_key)
-      match key_pos {
-        None => return default
-        Some(kp) => {
-          let after_equals = after_section[kp + search_key.length():].to_owned()
-          if after_equals.has_prefix("\"") {
-            let inner = after_equals[1:].to_owned()
-            let close = inner.find("\"")
-            match close {
-              Some(cp) => inner[0:cp].to_owned()
-              None => default
-            }
-          } else {
-            let trimmed = after_equals.trim().to_owned()
-            let end = trimmed.find("\n")
-            match end {
-              Some(e) => trimmed[0:e].trim().to_owned()
-              None => trimmed.trim().to_owned()
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-///|
 /// Run dev server: build + serve + watch for rebuild.
-pub fn run_dev() -> Unit {
-  // First build
+pub fn run_dev(config : @core.SiteConfig) -> Unit {
+  let out_dir = config.output_dir
   println("dev: building site...")
-  run_build()
+  run_build(config)
   println("dev: initial build complete")
-
-  // Start file watcher (stub on wasm-gc)
-  @runtime.watch_dir("content", fn() { run_build() })
-  @runtime.start_dev_server("127.0.0.1", 3000, "public/")
+  @runtime.watch_dir(config.source_dir, fn() { run_build(config) })
+  @runtime.start_dev_server(config.dev_host, config.dev_port, out_dir)
 }
 
 ///|
 /// Run a full build: discover -> parse -> index -> validate -> render -> theme -> emit.
-pub fn run_build() -> Unit {
-  let content_dir = "content"
+pub fn run_build(config : @core.SiteConfig) -> Unit {
+  let content_dir = config.source_dir
   let files = try? @runtime.walk_dir(content_dir)
   let files = match files {
     Ok(f) => f
@@ -92,7 +29,6 @@ pub fn run_build() -> Unit {
     return
   }
 
-  // 1-2. Parse and render all files
   let docs : Array[@core.ParsedDocument] = []
   for file in files {
     let format = detect_source_format(file)
@@ -114,42 +50,37 @@ pub fn run_build() -> Unit {
     }
   }
 
-  // 3. Build index with rendered bodies
   let site = build_index_with_html(docs)
-
-  // 4. Validate
   let site = @core.check_route_collisions(site)
   let site = @core.check_broken_links(site)
   let site = @core.check_missing_titles(site)
 
-  // Report validation errors and stop if fatal
   let has_errors = has_fatal(site.diagnostics)
   if has_errors {
     println("build: stopping due to validation errors")
     return
   }
 
-  // Print Typst render mode
-  let mode = load_typst_mode()
-  let fallback = load_typst_fallback()
-  let msg = "build: typst mode=\"" + mode + "\" (fallback=\"" + fallback + "\")"
+  let msg = "build: typst mode=\"" +
+    config.typst_mode +
+    "\" (fallback=\"" +
+    config.typst_fallback +
+    "\")"
   println(msg)
 
-  // Check template slots (E005)
-  let layouts = @theme.load_layouts("theme")
+  let layouts = @theme.load_layouts(config.theme_dir)
   let slot_diags = @core.check_template_slots(layouts)
   for diag in slot_diags {
     println("warning[" + diag.code + "]: " + diag.message)
   }
 
-  // 6-7. Apply theme and emit
-  emit_site(site)
+  emit_site(site, config)
 }
 
 ///|
 /// Run a full content check (no output).
-pub fn run_check() -> Unit {
-  let content_dir = "content"
+pub fn run_check(config : @core.SiteConfig) -> Unit {
+  let content_dir = config.source_dir
   let files = try? @runtime.walk_dir(content_dir)
   let files = match files {
     Ok(f) => f
@@ -205,7 +136,6 @@ fn detect_source_format(path : String) -> @core.SourceFormat? {
 }
 
 ///|
-/// Build a dummy ParsedDocument for unsupported files (emits E004).
 fn unsupported_doc(file : String) -> @core.ParsedDocument {
   let source : @core.SourceDocument = {
     path: file,
@@ -294,7 +224,6 @@ fn build_index(docs : Array[@core.ParsedDocument]) -> @core.Site {
 }
 
 ///|
-/// Build site index with rendered HTML bodies.
 fn build_index_with_html(docs : Array[@core.ParsedDocument]) -> @core.Site {
   let pages : Map[String, @core.SitePage] = {}
   let routes : Array[String] = []
@@ -307,7 +236,6 @@ fn build_index_with_html(docs : Array[@core.ParsedDocument]) -> @core.Site {
       Some(t) => t
       None => ""
     }
-    // render body HTML
     let html = render_body_html(doc)
     let internal_links = collect_internal_links(doc.links)
     let page : @core.SitePage = {
@@ -329,7 +257,6 @@ fn build_index_with_html(docs : Array[@core.ParsedDocument]) -> @core.Site {
 }
 
 ///|
-/// Collect internal link targets from a list of links.
 fn collect_internal_links(links : Array[@core.Link]) -> Array[String] {
   let result : Array[String] = []
   for link in links {
@@ -342,7 +269,6 @@ fn collect_internal_links(links : Array[@core.Link]) -> Array[String] {
 }
 
 ///|
-/// Render a ParsedDocument's body to HTML based on format.
 fn render_body_html(doc : @core.ParsedDocument) -> String {
   match doc.source.format {
     @core.SourceFormat::Markdown => @format_markdown.render(doc)
@@ -413,50 +339,70 @@ fn has_fatal(diagnostics : Array[@core.Diagnostic]) -> Bool {
 }
 
 ///|
-/// Emit site: apply theme, write public/ files.
-fn emit_site(site : @core.Site) -> Unit {
-  // Copy theme assets to public/
-  @theme.copy_assets("theme", "public")
+/// Emit site: apply theme, write output files.
+fn emit_site(site : @core.Site, config : @core.SiteConfig) -> Unit {
+  let out_dir = config.output_dir
+  let _ = try? @runtime.create_dir(out_dir)
+  let _ = try? @runtime.create_dir(out_dir + "/content")
+  let _ = try? @runtime.create_dir(out_dir + "/content/blog")
+  let _ = try? @runtime.create_dir(out_dir + "/assets")
+  let _ = try? @runtime.create_dir(out_dir + "/assets/theme")
 
-  let layouts = @theme.load_layouts("theme")
-  let default_layout = match layouts.get("default") {
+  @theme.copy_assets(config.theme_dir, out_dir)
+
+  let layouts = @theme.load_layouts(config.theme_dir)
+  let default_layout_tpl = match layouts.get("default") {
     Some(l) => l
     None => get_default_layout()
   }
-  let post_layout = match layouts.get("post") {
+  let post_layout_tpl = match layouts.get("post") {
     Some(l) => l
     None => get_post_layout()
   }
 
-  // For each page, render through theme and write
   for route, page in site.pages {
     let layout_name = page.metadata.layout
     let page_layout = if layout_name == "post" {
-      post_layout
+      post_layout_tpl
     } else {
-      default_layout
+      default_layout_tpl
     }
-    let page_ctx = build_template_context(site, Some(page))
+    let page_ctx = build_template_context(site, Some(page), config)
     let html = @theme.render(page_layout, page_ctx)
-    let output_path = "public\{route}index.html"
+    let page_dir = out_dir + route
+    let page_dir = if page_dir.has_suffix("/") {
+      page_dir
+    } else {
+      page_dir + "/"
+    }
+    ignore(try? @runtime.create_dir(page_dir))
+    let output_path = page_dir + "index.html"
     ignore(try? @runtime.write_file(output_path, html))
   }
 
-  // Sitemap
-  ignore(try? @runtime.write_file("public/sitemap.xml", build_sitemap(site)))
-
-  // Search index
   ignore(
     try? @runtime.write_file(
-      "public/search-index.json",
+      out_dir + "/sitemap.xml",
+      build_sitemap(site, config),
+    ),
+  )
+  ignore(
+    try? @runtime.write_file(
+      out_dir + "/search-index.json",
       build_search_index(site),
     ),
   )
+  ignore(
+    try? @runtime.write_file(out_dir + "/manifest.json", build_manifest(site)),
+  )
+  ignore(
+    try? @runtime.write_file(
+      out_dir + "/index.html",
+      "<!DOCTYPE html><html><head><meta http-equiv=\"refresh\" content=\"0;url=/content/\"></head><body><a href=\"/content/\">Enter site</a></body></html>",
+    ),
+  )
 
-  // Manifest
-  ignore(try? @runtime.write_file("public/manifest.json", build_manifest(site)))
-
-  println("build: site emitted to public/")
+  println("build: site emitted to " + out_dir + "/")
 }
 
 ///|
@@ -501,7 +447,7 @@ fn get_default_layout() -> String {
   )
   b.write_string("  <main><article>{{ page_content }}</article></main>\n")
   b.write_string(
-    "  <footer><p>Built with <a href=\"https://github.com/kozmosa/yuegui\">Yuegui</a>.</p></footer>\n",
+    "  <footer><p>Built with <a href=\"https://github.com/Anxiu0101/yuegui\">Yuegui</a>.</p></footer>\n",
   )
   b.write_string("</body>\n</html>\n")
   b.to_string()
@@ -547,7 +493,7 @@ fn get_post_layout() -> String {
   b.write_string("    </article>\n")
   b.write_string("  </main>\n")
   b.write_string(
-    "  <footer><p>Built with <a href=\"https://github.com/kozmosa/yuegui\">Yuegui</a>.</p></footer>\n",
+    "  <footer><p>Built with <a href=\"https://github.com/Anxiu0101/yuegui\">Yuegui</a>.</p></footer>\n",
   )
   b.write_string("</body>\n</html>\n")
   b.to_string()
@@ -558,12 +504,11 @@ fn get_post_layout() -> String {
 fn build_template_context(
   site : @core.Site,
   page : @core.SitePage?,
+  config : @core.SiteConfig,
 ) -> @theme.TemplateContext {
   let ctx = @theme.context()
-  // site vars
-  @theme.set(ctx, "site_title", @theme.str("My Site"))
-  @theme.set(ctx, "site_language", @theme.str("en"))
-  // pages list for {{#each site_pages}}
+  @theme.set(ctx, "site_title", @theme.str(config.title))
+  @theme.set(ctx, "site_language", @theme.str(config.language))
   let page_maps : Array[Map[String, @theme.ContextValue]] = []
   for _route, p in site.pages {
     let pm : Map[String, @theme.ContextValue] = {}
@@ -573,7 +518,6 @@ fn build_template_context(
   }
   @theme.set(ctx, "site_pages", @theme.arr(page_maps))
 
-  // page vars
   match page {
     Some(p) => {
       @theme.set(ctx, "page_title", @theme.str(p.title))
@@ -599,7 +543,8 @@ fn build_template_context(
 
 ///|
 /// Build sitemap.xml.
-fn build_sitemap(site : @core.Site) -> String {
+fn build_sitemap(site : @core.Site, config : @core.SiteConfig) -> String {
+  let base_url = config.base_url
   let buf = @builtin.StringBuilder::new()
   buf.write_string("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
   buf.write_string(
@@ -607,7 +552,7 @@ fn build_sitemap(site : @core.Site) -> String {
   )
   for _route, page in site.pages {
     let p = page.route
-    buf.write_string("  <url><loc>https://example.com\{p}</loc></url>\n")
+    buf.write_string("  <url><loc>\{base_url}\{p}</loc></url>\n")
   }
   buf.write_string("</urlset>\n")
   buf.to_string()

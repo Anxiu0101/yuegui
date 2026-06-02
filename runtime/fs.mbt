@@ -35,3 +35,9 @@ pub fn walk_dir(dir : String) -> Array[String] raise @fs.IOError {
   }
   result
 }
+
+///|
+/// Create a single directory. Parent must exist.
+pub fn create_dir(path : String) -> Unit raise @fs.IOError {
+  @fs.create_dir(path)
+}

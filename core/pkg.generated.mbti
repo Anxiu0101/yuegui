@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "kozmosa/yuegui/core"
+package "Anxiu0101/yuegui/core"
 
 // Values
 pub const E001_BROKEN_LINK : String = "E001"
@@ -27,6 +27,8 @@ pub fn check_missing_titles(Site) -> Site
 pub fn check_route_collisions(Site) -> Site
 
 pub fn check_template_slots(Map[String, String]) -> Array[Diagnostic]
+
+pub fn default_site_config() -> SiteConfig
 
 pub fn detect_format(String) -> SourceFormat?
 
@@ -130,6 +132,19 @@ pub(all) struct Site {
   pages : Map[String, SitePage]
   routes : Array[String]
   diagnostics : Array[Diagnostic]
+}
+
+pub(all) struct SiteConfig {
+  title : String
+  language : String
+  base_url : String
+  source_dir : String
+  theme_dir : String
+  output_dir : String
+  typst_mode : String
+  typst_fallback : String
+  dev_port : Int
+  dev_host : String
 }
 
 pub(all) struct SitePage {

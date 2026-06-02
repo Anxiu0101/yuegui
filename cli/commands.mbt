@@ -3,12 +3,12 @@
 /// Provides full --help and --version support.
 
 ///|
-/// Parse CLI args and dispatch to the matching subcommand.
-pub fn dispatch() -> Unit {
+/// Parse CLI args and dispatch to the matching subcommand with site config.
+pub fn dispatch(config : @core.SiteConfig) -> Unit {
   let cmd = build_parser()
   let matches = try? cmd.parse()
   match matches {
-    Ok(m) => handle_matches(m)
+    Ok(m) => handle_matches(config, m)
     Err(_) => ()
   }
 }
@@ -57,15 +57,18 @@ fn build_parser() -> @argparse.Command {
 }
 
 ///|
-fn handle_matches(matches : @argparse.Matches) -> Unit {
+fn handle_matches(
+  config : @core.SiteConfig,
+  matches : @argparse.Matches,
+) -> Unit {
   match matches.subcommand {
     Some(("init", m)) => {
       let site = m.values.get_or_default("site", ["site"])[0]
       cmd_init(site)
     }
-    Some(("build", _)) => run_build()
-    Some(("dev", _)) => run_dev()
-    Some(("check", _)) => run_check()
+    Some(("build", _)) => run_build(config)
+    Some(("dev", _)) => run_dev(config)
+    Some(("check", _)) => run_check(config)
     Some(("new", new_m)) => handle_new(new_m)
     Some((name, _)) => println("unknown command: \{name}")
     None => println("yuegui --help for usage")
@@ -76,10 +79,26 @@ fn handle_matches(matches : @argparse.Matches) -> Unit {
 fn cmd_init(site_name : String) -> Unit {
   let site_dir = site_name
   println("Creating site: \{site_name}")
+
+  let _ = try? @runtime.create_dir(site_dir)
+  let _ = try? @runtime.create_dir("\{site_dir}/content")
+  let _ = try? @runtime.create_dir("\{site_dir}/theme")
+  let _ = try? @runtime.create_dir("\{site_dir}/theme/layouts")
+  let _ = try? @runtime.create_dir("\{site_dir}/theme/assets")
+
   let _ = try? @runtime.write_file(
-    "\{site_dir}/yuegui.toml",
-    toml_config(site_name),
+    "\{site_dir}/moon.mod",
+    init_moon_mod(site_name),
   )
+  let _ = try? @runtime.write_file("\{site_dir}/moon.pkg", init_moon_pkg())
+  let _ = try? @runtime.write_file(
+    "\{site_dir}/main.mbt",
+    init_main_mbt(site_name),
+  )
+  let _ = try? @runtime.write_file("\{site_dir}/.gitignore", init_gitignore())
+  let _ = try? @runtime.write_file("\{site_dir}/yuegui.bat", init_yuegui_bat())
+  let _ = try? @runtime.write_file("\{site_dir}/yuegui.sh", init_yuegui_sh())
+
   let _ = try? @runtime.write_file(
     "\{site_dir}/content/index.md",
     index_markdown(site_name),
@@ -89,14 +108,20 @@ fn cmd_init(site_name : String) -> Unit {
     default_layout(),
   )
   let _ = try? @runtime.write_file(
+    "\{site_dir}/theme/layouts/post.html",
+    post_layout(),
+  )
+  let _ = try? @runtime.write_file(
     "\{site_dir}/theme/assets/style.css",
     default_stylesheet(),
   )
+
   println("")
   println("Done! Run:")
   println("  cd \{site_dir}")
-  println("  yuegui dev")
+  println("  moon update")
   println("  yuegui build")
+  println("  yuegui dev")
   println("  yuegui check")
 }
 

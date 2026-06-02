@@ -1,6 +1,6 @@
 ///|
-/// Entry point for Yuegui CLI.
-/// Run with `moon run cmd/main` from the project root.
+/// Entry point for Yuegui CLI (dev mode).
+/// Uses default config; users create their own main.mbt for their site.
 fn main {
-  @cli.dispatch()
+  @cli.dispatch(@core.default_site_config())
 }
