@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="{{ site_language }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ page_title }} — {{ site_title }}</title>
+  {{#if page_description}}
+  <meta name="description" content="{{ page_description }}">
+  {{/if}}
+  <link rel="stylesheet" href="/assets/theme/style.css">
+</head>
+<body>
+  <header>
+    <nav>
+      <a href="/">{{ site_title }}</a>
+      {{#each site_pages}}
+        {{#if weight}}
+          <a href="{{ route }}">{{ title }}</a>
+        {{/if}}
+      {{/each}}
+    </nav>
+  </header>
+  <main>
+    <article>
+      {{ page_content }}
+    </article>
+  </main>
+  <footer>
+    <p>Built with <a href="https://github.com/Anxiu0101/yuegui">Yuegui</a>.</p>
+  </footer>
+</body>
+</html>
