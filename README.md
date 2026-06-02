@@ -1,4 +1,4 @@
-# Yuegui
+# 月桂 Yuegui
 
 **MoonBit-native static site generator for technical publishing.**
 
@@ -7,7 +7,7 @@
 Yuegui treats Markdown (stable) and Typst (experimental) as first-class source formats in a shared site graph. It provides strong build-time diagnostics and
 emits fast static HTML.
 
-![example page](./public/yuegui.jpg)
+![example page](./yuegui.jpg)
 
 ## Prerequisites
 
