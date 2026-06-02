@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "kozmosa/yuegui/theme"
+package "Anxiu0101/yuegui/theme"
 
 // Values
 pub fn arr(Array[Map[String, ContextValue]]) -> ContextValue

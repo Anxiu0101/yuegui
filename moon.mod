@@ -1,10 +1,10 @@
-name = "kozmosa/yuegui"
+name = "Anxiu0101/yuegui"
 
 version = "0.1.0"
 
 readme = "README.mbt.md"
 
-repository = "https://github.com/kozmosa/yuegui"
+repository = "https://github.com/Anxiu0101/yuegui"
 
 license = "Apache-2.0"
 

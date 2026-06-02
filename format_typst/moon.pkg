@@ -1,4 +1,4 @@
 import {
   "moonbitlang/core/builtin",
-  "kozmosa/yuegui/core",
+  "Anxiu0101/yuegui/core",
 }
