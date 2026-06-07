@@ -618,6 +618,9 @@ fn get_default_layout() -> String {
   b.write_string(
     "  <link rel=\"stylesheet\" href=\"/assets/theme/style.css\">\n",
   )
+  b.write_string(
+    "  <link rel=\"stylesheet\" href=\"/assets/theme/prism.css\">\n",
+  )
   b.write_string("</head>\n")
   b.write_string("<body>\n")
   b.write_string("  <header>\n")
@@ -640,6 +643,7 @@ fn get_default_layout() -> String {
     "    <p>Built with <a href=\"https://github.com/Anxiu0101/yuegui\">Yuegui</a>.</p>\n",
   )
   b.write_string("  </footer>\n")
+  b.write_string("  <script src=\"/assets/theme/prism.js\"></script>\n")
   b.write_string("</body>\n")
   b.write_string("</html>\n")
   b.to_string()
@@ -664,6 +668,9 @@ fn get_post_layout() -> String {
   b.write_string("  {{/if}}\n")
   b.write_string(
     "  <link rel=\"stylesheet\" href=\"/assets/theme/style.css\">\n",
+  )
+  b.write_string(
+    "  <link rel=\"stylesheet\" href=\"/assets/theme/prism.css\">\n",
   )
   b.write_string("</head>\n")
   b.write_string("<body>\n")
@@ -692,6 +699,7 @@ fn get_post_layout() -> String {
     "    <p>Built with <a href=\"https://github.com/Anxiu0101/yuegui\">Yuegui</a>.</p>\n",
   )
   b.write_string("  </footer>\n")
+  b.write_string("  <script src=\"/assets/theme/prism.js\"></script>\n")
   b.write_string("</body>\n</html>\n")
   b.to_string()
 }
