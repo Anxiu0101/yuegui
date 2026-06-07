@@ -1,19 +1,25 @@
 ///|
 /// Route computation from file paths.
-
-///|
-/// Compute the URL route from a source file path.
 ///
 /// Rules:
-/// - `index.md` → `/`
-/// - `guide/index.md` → `/guide/`
-/// - `guide/getting-started.md` → `/guide/getting-started/`
-pub fn filepath_to_route(filepath : String) -> String {
-  let without_ext = strip_extension(filepath)
-  if without_ext.has_suffix("/index") {
+/// - `content/index.md` → `/`
+/// - `content/guide/index.md` → `/guide/`
+/// - `content/guide/getting-started.md` → `/guide/getting-started/`
+///
+/// The `source_dir` prefix (e.g. "content") is stripped from the
+/// filepath before route computation.
+pub fn filepath_to_route(filepath : String, source_dir : String) -> String {
+  let rel = if filepath.has_prefix(source_dir + "/") {
+    let n = source_dir.length() + 1
+    filepath[n:].to_owned()
+  } else {
+    filepath
+  }
+  let without_ext = strip_extension(rel)
+  if without_ext == "index" || without_ext.has_suffix("/index") {
     let n = without_ext.length()
-    let dir_end = n - 6 // length of "/index"
-    let dir = without_ext[0:dir_end].to_owned()
+    let dir_end = if without_ext == "index" { 0 } else { n - 6 }
+    let dir = if dir_end == 0 { "" } else { without_ext[0:dir_end].to_owned() }
     return "/\{dir}"
   }
   return "/\{without_ext}/"

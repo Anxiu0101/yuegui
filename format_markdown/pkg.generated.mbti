@@ -6,9 +6,13 @@ import {
 }
 
 // Values
+pub fn inject_heading_ids(String) -> String
+
 pub fn parse(@core.SourceDocument) -> @core.ParsedDocument
 
-pub fn render(@core.ParsedDocument) -> String
+pub fn render(String) -> String
+
+pub fn resolve_wikilinks(String, Map[String, String]) -> String
 
 // Errors
 

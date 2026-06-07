@@ -34,7 +34,7 @@ pub fn detect_format(String) -> SourceFormat?
 
 pub fn error(String, String, Int?, Int?, String) -> Diagnostic
 
-pub fn filepath_to_route(String) -> String
+pub fn filepath_to_route(String, String) -> String
 
 pub fn info(String, String, Int?, Int?, String) -> Diagnostic
 

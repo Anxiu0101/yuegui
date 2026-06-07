@@ -1,4 +1,5 @@
 import {
   "moonbitlang/core/builtin",
   "Anxiu0101/yuegui/core",
+  "mizchi/markdown",
 }

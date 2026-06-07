@@ -50,7 +50,7 @@ pub fn run_build(config : @core.YueguiConfig) -> Unit {
     }
   }
 
-  let site = build_index_with_html(docs)
+  let site = build_index_with_html(docs, config.source_dir)
   let site = @core.check_route_collisions(site)
   let site = @core.check_broken_links(site)
   let site = @core.check_missing_titles(site)
@@ -129,7 +129,7 @@ pub fn run_check(config : @core.YueguiConfig) -> Unit {
     }
   }
 
-  let site = build_index(docs)
+  let site = build_index(docs, config.source_dir)
   let site = @core.check_route_collisions(site)
   let site = @core.check_broken_links(site)
   let site = @core.check_missing_titles(site)
@@ -207,13 +207,16 @@ fn parse_document(source : @core.SourceDocument) -> @core.ParsedDocument {
 }
 
 ///|
-fn build_index(docs : Array[@core.ParsedDocument]) -> @core.Site {
+fn build_index(
+  docs : Array[@core.ParsedDocument],
+  source_dir : String,
+) -> @core.Site {
   let pages : Map[String, @core.SitePage] = {}
   let routes : Array[String] = []
   let all_diagnostics : Array[@core.Diagnostic] = []
 
   for doc in docs {
-    let route = @core.filepath_to_route(doc.source.path)
+    let route = @core.filepath_to_route(doc.source.path, source_dir)
     routes.push(route)
     let title = match doc.title {
       Some(t) => t
@@ -238,44 +241,115 @@ fn build_index(docs : Array[@core.ParsedDocument]) -> @core.Site {
 }
 
 ///|
-fn build_index_with_html(docs : Array[@core.ParsedDocument]) -> @core.Site {
+fn build_index_with_html(
+  docs : Array[@core.ParsedDocument],
+  source_dir : String,
+) -> @core.Site {
   let pages : Map[String, @core.SitePage] = {}
   let routes : Array[String] = []
   let all_diagnostics : Array[@core.Diagnostic] = []
 
+  // First pass: compute routes and build link index (route → route, slug → route)
+  let link_index : Map[String, String] = {}
   for doc in docs {
-    let route = @core.filepath_to_route(doc.source.path)
+    let route = @core.filepath_to_route(doc.source.path, source_dir)
     routes.push(route)
+    link_index.set(route, route)
+    let slug = path_to_slug(doc.source.path)
+    link_index.set(slug, route)
+
     let title = match doc.title {
       Some(t) => t
       None => ""
     }
-    let html = render_body_html(doc)
-    let internal_links = collect_internal_links(doc.links)
-    let page : @core.SitePage = {
+    let placeholder : @core.SitePage = {
       route,
       title,
-      content_html: html,
+      content_html: "",
       source_format: doc.source.format,
       metadata: extract_page_meta(doc),
-      outgoing_links: internal_links,
+      outgoing_links: [],
       headings: doc.headings,
     }
-    pages.set(route, page)
+    pages.set(route, placeholder)
     for diag in doc.diagnostics {
       all_diagnostics.push(diag)
     }
+  }
+
+  // Second pass: render HTML with wikilink resolution, resolve outgoing links
+  for doc in docs {
+    let route = @core.filepath_to_route(doc.source.path, source_dir)
+    let html = render_body_html(doc, link_index)
+    let internal_links = resolve_internal_links(doc.links, link_index)
+    let existing = pages[route]
+    let page : @core.SitePage = {
+      route: existing.route,
+      title: existing.title,
+      content_html: html,
+      source_format: existing.source_format,
+      metadata: existing.metadata,
+      outgoing_links: internal_links,
+      headings: existing.headings,
+    }
+    pages.set(route, page)
   }
 
   { pages, routes, diagnostics: all_diagnostics }
 }
 
 ///|
-fn collect_internal_links(links : Array[@core.Link]) -> Array[String] {
+/// Extract the filename stem (without extension) from a content path to use as a link key.
+fn path_to_slug(path : String) -> String {
+  // Normalise backslashes to forward slashes
+  let normalised = path.replace(old="\\", new="/")
+  let last_slash = find_char_rev(normalised, "/")
+  let basename = if last_slash >= 0 {
+    normalised[last_slash + 1:].to_owned()
+  } else {
+    normalised
+  }
+  let dot = find_char(basename, ".")
+  if dot >= 0 {
+    basename[:dot].to_owned()
+  } else {
+    basename
+  }
+}
+
+///|
+/// Find the last occurrence of a character in a string, return index or -1.
+fn find_char_rev(s : String, ch : String) -> Int {
+  let len = s.length()
+  for i = len - 1; i >= 0; i = i - 1 {
+    if s[i:i + 1] == ch {
+      return i
+    }
+  }
+  -1
+}
+
+///|
+
+///|
+/// Resolve internal links through the link index, producing resolved route targets.
+fn resolve_internal_links(
+  links : Array[@core.Link],
+  link_index : Map[String, String],
+) -> Array[String] {
   let result : Array[String] = []
   for link in links {
     match link.kind {
-      @core.LinkKind::Internal(target) => result.push(target)
+      @core.LinkKind::Internal(target) => {
+        // Try direct lookup first, then fall back to link_index
+        let resolved = link_index.get_or_default(target, "")
+        if resolved != "" {
+          result.push(resolved)
+        } else {
+          // Keep unresolved links so check_broken_links can flag them
+          result.push(target)
+        }
+      }
       _ => ()
     }
   }
@@ -283,9 +357,18 @@ fn collect_internal_links(links : Array[@core.Link]) -> Array[String] {
 }
 
 ///|
-fn render_body_html(doc : @core.ParsedDocument) -> String {
+fn render_body_html(
+  doc : @core.ParsedDocument,
+  link_index : Map[String, String],
+) -> String {
   match doc.source.format {
-    @core.SourceFormat::Markdown => @format_markdown.render(doc)
+    @core.SourceFormat::Markdown => {
+      let resolved = @format_markdown.resolve_wikilinks(
+        doc.source.body,
+        link_index,
+      )
+      @format_markdown.render(resolved)
+    }
     @core.SourceFormat::Typst => @format_typst.render(doc)
     @core.SourceFormat::Html => doc.source.body
   }
@@ -297,15 +380,66 @@ fn extract_page_meta(doc : @core.ParsedDocument) -> @core.PageMetadata {
     Some(t) => t
     None => ""
   }
+  let fm = doc.source.frontmatter
   {
     title,
-    description: None,
-    date: None,
-    author: None,
-    tags: [],
-    draft: false,
-    layout: "default",
-    weight: 0,
+    description: fm.get("description"),
+    date: fm.get("date"),
+    author: fm.get("author"),
+    tags: parse_tags(fm.get_or_default("tags", "")),
+    draft: fm.get_or_default("draft", "false") == "true",
+    layout: fm.get_or_default("layout", "default"),
+    weight: parse_int_core(fm.get_or_default("weight", "0")),
+  }
+}
+
+///|
+/// Parse tags from a string: comma-separated or space-separated list.
+fn parse_tags(raw : String) -> Array[String] {
+  if raw.length() == 0 {
+    return []
+  }
+  let result : Array[String] = []
+  // Try comma-separated first
+  if raw.find(",") != None {
+    let parts = raw.split(",")
+    for part in parts {
+      let trimmed = part.trim()
+      if trimmed.length() > 0 {
+        result.push(trimmed.to_owned())
+      }
+    }
+  } else {
+    // Space-separated
+    let parts = raw.split(" ")
+    for part in parts {
+      let trimmed = part.trim()
+      if trimmed.length() > 0 {
+        result.push(trimmed.to_owned())
+      }
+    }
+  }
+  result
+}
+
+///|
+/// Parse an integer from a string, returning 0 on failure.
+fn parse_int_core(s : String) -> Int {
+  let len = s.length()
+  let mut result = 0
+  let mut negative = false
+  for i = 0; i < len; i = i + 1 {
+    let ch = s[i:i + 1]
+    if i == 0 && ch == "-" {
+      negative = true
+    } else if ch >= "0" && ch <= "9" {
+      result = result * 10 + (ch[0].to_int() - 48)
+    }
+  }
+  if negative {
+    -result
+  } else {
+    result
   }
 }
 
@@ -357,8 +491,6 @@ fn has_fatal(diagnostics : Array[@core.Diagnostic]) -> Bool {
 fn emit_site(site : @core.Site, config : @core.YueguiConfig) -> Unit {
   let out_dir = config.output_dir
   let _ = try? @runtime.create_dir(out_dir)
-  let _ = try? @runtime.create_dir(out_dir + "/content")
-  let _ = try? @runtime.create_dir(out_dir + "/content/blog")
   let _ = try? @runtime.create_dir(out_dir + "/assets")
   let _ = try? @runtime.create_dir(out_dir + "/assets/theme")
 
@@ -408,12 +540,6 @@ fn emit_site(site : @core.Site, config : @core.YueguiConfig) -> Unit {
   )
   ignore(
     try? @runtime.write_file(out_dir + "/manifest.json", build_manifest(site)),
-  )
-  ignore(
-    try? @runtime.write_file(
-      out_dir + "/index.html",
-      "<!DOCTYPE html><html><head><meta http-equiv=\"refresh\" content=\"0;url=/content/\"></head><body><a href=\"/content/\">Enter site</a></body></html>",
-    ),
   )
 
   println("build: site emitted to " + out_dir + "/")

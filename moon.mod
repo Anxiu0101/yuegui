@@ -14,4 +14,5 @@ description = "A MoonBit-native static site generator for technical publishing."
 
 import {
   "moonbitlang/x@0.4.44",
+  "mizchi/markdown@0.4.7",
 }
