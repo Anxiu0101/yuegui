@@ -127,3 +127,32 @@ pub(all) struct Site {
   routes : Array[String] // all known routes
   diagnostics : Array[Diagnostic]
 }
+
+///|
+/// A navigation item in a nav bar or sidebar.
+pub(all) enum NavItem {
+  /// Simple link: display text, URL
+  Link(String, String)
+  /// Group with children: group label, child items
+  Group(String, Array[NavItem])
+  /// Visual separator between groups
+  Separator
+}
+
+///|
+/// Navigation configuration for a site.
+pub(all) struct NavigationConfig {
+  /// Top navigation bar items
+  nav : Array[NavItem]
+  /// Sidebar, keyed by path prefix (same convention as VitePress)
+  sidebar : Map[String, Array[NavItem]]
+}
+
+///|
+/// Plugin configuration entry.
+/// `name` is the MoonBit package name or registry identifier.
+/// `options` is an arbitrary JSON-like map passed to the plugin on load.
+pub(all) struct PluginConfig {
+  name : String
+  options : Map[String, ConfigJson]
+}

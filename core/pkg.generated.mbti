@@ -28,7 +28,7 @@ pub fn check_route_collisions(Site) -> Site
 
 pub fn check_template_slots(Map[String, String]) -> Array[Diagnostic]
 
-pub fn default_site_config() -> SiteConfig
+pub fn default_yuegui_config() -> YueguiConfig
 
 pub fn detect_format(String) -> SourceFormat?
 
@@ -54,6 +54,16 @@ pub(all) struct AssetRef {
   source_path : String
   target_path : String
   kind : AssetKind
+}
+
+pub(all) enum ConfigJson {
+  CJNull
+  CJBool(Bool)
+  CJInt(Int)
+  CJDouble(Double)
+  CJString(String)
+  CJArray(Array[ConfigJson])
+  CJObject(Map[String, ConfigJson])
 }
 
 pub(all) struct Diagnostic {
@@ -94,6 +104,17 @@ pub(all) enum LinkKind {
   Asset(String)
 }
 
+pub(all) enum NavItem {
+  Link(String, String)
+  Group(String, Array[NavItem])
+  Separator
+}
+
+pub(all) struct NavigationConfig {
+  nav : Array[NavItem]
+  sidebar : Map[String, Array[NavItem]]
+}
+
 pub(all) struct PageMetadata {
   title : String
   description : String?
@@ -115,6 +136,11 @@ pub(all) struct ParsedDocument {
   render_capabilities : RenderCapabilities
 }
 
+pub(all) struct PluginConfig {
+  name : String
+  options : Map[String, ConfigJson]
+}
+
 pub(all) struct RenderCapabilities {
   format : SourceFormat
   mode : RenderMode
@@ -132,19 +158,6 @@ pub(all) struct Site {
   pages : Map[String, SitePage]
   routes : Array[String]
   diagnostics : Array[Diagnostic]
-}
-
-pub(all) struct SiteConfig {
-  title : String
-  language : String
-  base_url : String
-  source_dir : String
-  theme_dir : String
-  output_dir : String
-  typst_mode : String
-  typst_fallback : String
-  dev_port : Int
-  dev_host : String
 }
 
 pub(all) struct SitePage {
@@ -168,6 +181,25 @@ pub(all) enum SourceFormat {
   Markdown
   Typst
   Html
+}
+
+pub(all) struct YueguiConfig {
+  title : String
+  description : String
+  language : String
+  base_url : String
+  source_dir : String
+  theme_dir : String
+  output_dir : String
+  auto_navigation : Bool
+  navigation : NavigationConfig
+  markdown_extensions : Map[String, ConfigJson]
+  plugins : Array[PluginConfig]
+  extra : Map[String, ConfigJson]
+  typst_mode : String
+  typst_fallback : String
+  dev_port : Int
+  dev_host : String
 }
 
 // Type aliases

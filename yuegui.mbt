@@ -4,6 +4,6 @@
 ///|
 /// Dispatch a CLI command with the given site configuration.
 /// This is the main entry point for user sites.
-pub fn dispatch(config : @core.SiteConfig) -> Unit {
+pub fn dispatch(config : @core.YueguiConfig) -> Unit {
   @cli.dispatch(config)
 }

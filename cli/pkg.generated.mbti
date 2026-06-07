@@ -10,7 +10,7 @@ pub fn default_layout() -> String
 
 pub fn default_stylesheet() -> String
 
-pub fn dispatch(@core.SiteConfig) -> Unit
+pub fn dispatch(@core.YueguiConfig) -> Unit
 
 pub fn index_markdown(String) -> String
 
@@ -34,11 +34,13 @@ pub fn post_layout() -> String
 
 pub fn post_template(String) -> String
 
-pub fn run_build(@core.SiteConfig) -> Unit
+pub fn run_build(@core.YueguiConfig) -> Unit
 
-pub fn run_check(@core.SiteConfig) -> Unit
+pub fn run_check(@core.YueguiConfig) -> Unit
 
-pub fn run_dev(@core.SiteConfig) -> Unit
+pub fn run_dev(@core.YueguiConfig) -> Unit
+
+pub fn scan_and_write_nav(String, String) -> Unit
 
 // Errors
 

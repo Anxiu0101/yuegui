@@ -3,7 +3,7 @@
 
 ///|
 /// Run dev server: build + serve + watch for rebuild.
-pub fn run_dev(config : @core.SiteConfig) -> Unit {
+pub fn run_dev(config : @core.YueguiConfig) -> Unit {
   let out_dir = config.output_dir
   println("dev: building site...")
   run_build(config)
@@ -14,7 +14,7 @@ pub fn run_dev(config : @core.SiteConfig) -> Unit {
 
 ///|
 /// Run a full build: discover -> parse -> index -> validate -> render -> theme -> emit.
-pub fn run_build(config : @core.SiteConfig) -> Unit {
+pub fn run_build(config : @core.YueguiConfig) -> Unit {
   let content_dir = config.source_dir
   let files = try? @runtime.walk_dir(content_dir)
   let files = match files {
@@ -68,6 +68,20 @@ pub fn run_build(config : @core.SiteConfig) -> Unit {
     "\")"
   println(msg)
 
+  // Auto-navigation: check conflict, then scan if enabled
+  let has_manual_nav = config.navigation.nav.length() > 0 ||
+    config.navigation.sidebar.keys().count() > 0
+  if config.auto_navigation {
+    if has_manual_nav {
+      println(
+        "warning: auto_navigation=true but manual navigation has values; using manual navigation. Set auto_navigation=false to suppress.",
+      )
+    } else {
+      println("build: auto-navigation scanning \{config.source_dir}/...")
+      scan_and_write_nav(config.source_dir, "mbt")
+    }
+  }
+
   let layouts = @theme.load_layouts(config.theme_dir)
   let slot_diags = @core.check_template_slots(layouts)
   for diag in slot_diags {
@@ -79,7 +93,7 @@ pub fn run_build(config : @core.SiteConfig) -> Unit {
 
 ///|
 /// Run a full content check (no output).
-pub fn run_check(config : @core.SiteConfig) -> Unit {
+pub fn run_check(config : @core.YueguiConfig) -> Unit {
   let content_dir = config.source_dir
   let files = try? @runtime.walk_dir(content_dir)
   let files = match files {
@@ -340,7 +354,7 @@ fn has_fatal(diagnostics : Array[@core.Diagnostic]) -> Bool {
 
 ///|
 /// Emit site: apply theme, write output files.
-fn emit_site(site : @core.Site, config : @core.SiteConfig) -> Unit {
+fn emit_site(site : @core.Site, config : @core.YueguiConfig) -> Unit {
   let out_dir = config.output_dir
   let _ = try? @runtime.create_dir(out_dir)
   let _ = try? @runtime.create_dir(out_dir + "/content")
@@ -421,129 +435,8 @@ fn build_manifest(site : @core.Site) -> String {
 }
 
 ///|
-/// Build the default layout template string (flat keys).
-fn get_default_layout() -> String {
-  let b = @builtin.StringBuilder::new()
-  b.write_string("<!DOCTYPE html>\n")
-  b.write_string("<html lang=\"{{ site_language }}\">\n")
-  b.write_string("<head>\n")
-  b.write_string("  <meta charset=\"UTF-8\">\n")
-  b.write_string(
-    "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n",
-  )
-  b.write_string("  <title>{{ page_title }} - {{ site_title }}</title>\n")
-  b.write_string("  {{#if page_description}}\n")
-  b.write_string(
-    "  <meta name=\"description\" content=\"{{ page_description }}\">\n",
-  )
-  b.write_string("  {{/if}}\n")
-  b.write_string(
-    "  <link rel=\"stylesheet\" href=\"/assets/theme/style.css\">\n",
-  )
-  b.write_string("</head>\n")
-  b.write_string("<body>\n")
-  b.write_string(
-    "  <header><nav><a href=\"/\">{{ site_title }}</a></nav></header>\n",
-  )
-  b.write_string("  <main><article>{{ page_content }}</article></main>\n")
-  b.write_string(
-    "  <footer><p>Built with <a href=\"https://github.com/Anxiu0101/yuegui\">Yuegui</a>.</p></footer>\n",
-  )
-  b.write_string("</body>\n</html>\n")
-  b.to_string()
-}
-
-///|
-/// Build a post layout template with date/author header.
-fn get_post_layout() -> String {
-  let b = @builtin.StringBuilder::new()
-  b.write_string("<!DOCTYPE html>\n")
-  b.write_string("<html lang=\"{{ site_language }}\">\n")
-  b.write_string("<head>\n")
-  b.write_string("  <meta charset=\"UTF-8\">\n")
-  b.write_string(
-    "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n",
-  )
-  b.write_string("  <title>{{ page_title }} - {{ site_title }}</title>\n")
-  b.write_string("  {{#if page_description}}\n")
-  b.write_string(
-    "  <meta name=\"description\" content=\"{{ page_description }}\">\n",
-  )
-  b.write_string("  {{/if}}\n")
-  b.write_string(
-    "  <link rel=\"stylesheet\" href=\"/assets/theme/style.css\">\n",
-  )
-  b.write_string("</head>\n")
-  b.write_string("<body>\n")
-  b.write_string(
-    "  <header><nav><a href=\"/\">{{ site_title }}</a> <a href=\"/blog/\">Blog</a></nav></header>\n",
-  )
-  b.write_string("  <main>\n")
-  b.write_string("    <article class=\"post\">\n")
-  b.write_string("      <header class=\"post-header\">\n")
-  b.write_string("        <h1>{{ page_title }}</h1>\n")
-  b.write_string(
-    "        {{#if page_date}}<time>{{ page_date }}</time>{{/if}}\n",
-  )
-  b.write_string(
-    "        {{#if page_author}}<span class=\"author\">by {{ page_author }}</span>{{/if}}\n",
-  )
-  b.write_string("      </header>\n")
-  b.write_string("      <div class=\"post-content\">{{ page_content }}</div>\n")
-  b.write_string("    </article>\n")
-  b.write_string("  </main>\n")
-  b.write_string(
-    "  <footer><p>Built with <a href=\"https://github.com/Anxiu0101/yuegui\">Yuegui</a>.</p></footer>\n",
-  )
-  b.write_string("</body>\n</html>\n")
-  b.to_string()
-}
-
-///|
-/// Build template context from site and optional page.
-fn build_template_context(
-  site : @core.Site,
-  page : @core.SitePage?,
-  config : @core.SiteConfig,
-) -> @theme.TemplateContext {
-  let ctx = @theme.context()
-  @theme.set(ctx, "site_title", @theme.str(config.title))
-  @theme.set(ctx, "site_language", @theme.str(config.language))
-  let page_maps : Array[Map[String, @theme.ContextValue]] = []
-  for _route, p in site.pages {
-    let pm : Map[String, @theme.ContextValue] = {}
-    pm.set("title", @theme.str(p.title))
-    pm.set("route", @theme.str(p.route))
-    page_maps.push(pm)
-  }
-  @theme.set(ctx, "site_pages", @theme.arr(page_maps))
-
-  match page {
-    Some(p) => {
-      @theme.set(ctx, "page_title", @theme.str(p.title))
-      @theme.set(ctx, "page_content", @theme.str(p.content_html))
-      @theme.set(ctx, "page_route", @theme.str(p.route))
-      match p.metadata.description {
-        Some(d) => @theme.set(ctx, "page_description", @theme.str(d))
-        None => ()
-      }
-      match p.metadata.date {
-        Some(d) => @theme.set(ctx, "page_date", @theme.str(d))
-        None => ()
-      }
-      match p.metadata.author {
-        Some(a) => @theme.set(ctx, "page_author", @theme.str(a))
-        None => ()
-      }
-    }
-    None => ()
-  }
-  ctx
-}
-
-///|
 /// Build sitemap.xml.
-fn build_sitemap(site : @core.Site, config : @core.SiteConfig) -> String {
+fn build_sitemap(site : @core.Site, config : @core.YueguiConfig) -> String {
   let base_url = config.base_url
   let buf = @builtin.StringBuilder::new()
   buf.write_string("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
@@ -580,6 +473,154 @@ fn build_search_index(site : @core.Site) -> String {
 }
 
 ///|
+/// Build the default layout template string (flat keys).
+fn get_default_layout() -> String {
+  let b = @builtin.StringBuilder::new()
+  b.write_string("<!DOCTYPE html>\n")
+  b.write_string("<html lang=\"{{ site_language }}\">\n")
+  b.write_string("<head>\n")
+  b.write_string("  <meta charset=\"UTF-8\">\n")
+  b.write_string(
+    "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n",
+  )
+  b.write_string("  <title>{{ page_title }} — {{ site_title }}</title>\n")
+  b.write_string("  {{#if page_description}}\n")
+  b.write_string(
+    "  <meta name=\"description\" content=\"{{ page_description }}\">\n",
+  )
+  b.write_string("  {{/if}}\n")
+  b.write_string(
+    "  <link rel=\"stylesheet\" href=\"/assets/theme/style.css\">\n",
+  )
+  b.write_string("</head>\n")
+  b.write_string("<body>\n")
+  b.write_string("  <header>\n")
+  b.write_string("    <nav>\n")
+  b.write_string("      <a href=\"/\">{{ site_title }}</a>\n")
+  b.write_string("      {{#each site_nav}}\n")
+  b.write_string("        {{#if text}}\n")
+  b.write_string("          <a href=\"{{ url }}\">{{ text }}</a>\n")
+  b.write_string("        {{/if}}\n")
+  b.write_string("      {{/each}}\n")
+  b.write_string("    </nav>\n")
+  b.write_string("  </header>\n")
+  b.write_string("  <main>\n")
+  b.write_string("    <article>\n")
+  b.write_string("      {{ page_content }}\n")
+  b.write_string("    </article>\n")
+  b.write_string("  </main>\n")
+  b.write_string("  <footer>\n")
+  b.write_string(
+    "    <p>Built with <a href=\"https://github.com/Anxiu0101/yuegui\">Yuegui</a>.</p>\n",
+  )
+  b.write_string("  </footer>\n")
+  b.write_string("</body>\n")
+  b.write_string("</html>\n")
+  b.to_string()
+}
+
+///|
+/// Build a post layout template with date/author header.
+fn get_post_layout() -> String {
+  let b = @builtin.StringBuilder::new()
+  b.write_string("<!DOCTYPE html>\n")
+  b.write_string("<html lang=\"{{ site_language }}\">\n")
+  b.write_string("<head>\n")
+  b.write_string("  <meta charset=\"UTF-8\">\n")
+  b.write_string(
+    "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n",
+  )
+  b.write_string("  <title>{{ page_title }} — {{ site_title }}</title>\n")
+  b.write_string("  {{#if page_description}}\n")
+  b.write_string(
+    "  <meta name=\"description\" content=\"{{ page_description }}\">\n",
+  )
+  b.write_string("  {{/if}}\n")
+  b.write_string(
+    "  <link rel=\"stylesheet\" href=\"/assets/theme/style.css\">\n",
+  )
+  b.write_string("</head>\n")
+  b.write_string("<body>\n")
+  b.write_string("  <header>\n")
+  b.write_string("    <nav>\n")
+  b.write_string("      <a href=\"/\">{{ site_title }}</a>\n")
+  b.write_string("      <a href=\"/blog/\">Blog</a>\n")
+  b.write_string("    </nav>\n")
+  b.write_string("  </header>\n")
+  b.write_string("  <main>\n")
+  b.write_string("    <article class=\"post\">\n")
+  b.write_string("      <header class=\"post-header\">\n")
+  b.write_string("        <h1>{{ page_title }}</h1>\n")
+  b.write_string(
+    "        {{#if page_date}}<time>{{ page_date }}</time>{{/if}}\n",
+  )
+  b.write_string(
+    "        {{#if page_author}}<span class=\"author\">by {{ page_author }}</span>{{/if}}\n",
+  )
+  b.write_string("      </header>\n")
+  b.write_string("      <div class=\"post-content\">{{ page_content }}</div>\n")
+  b.write_string("    </article>\n")
+  b.write_string("  </main>\n")
+  b.write_string("  <footer>\n")
+  b.write_string(
+    "    <p>Built with <a href=\"https://github.com/Anxiu0101/yuegui\">Yuegui</a>.</p>\n",
+  )
+  b.write_string("  </footer>\n")
+  b.write_string("</body>\n</html>\n")
+  b.to_string()
+}
+
+///|
+/// Build template context from site and optional page.
+fn build_template_context(
+  site : @core.Site,
+  page : @core.SitePage?,
+  config : @core.YueguiConfig,
+) -> @theme.TemplateContext {
+  let ctx = @theme.context()
+  @theme.set(ctx, "site_title", @theme.str(config.title))
+  @theme.set(ctx, "site_language", @theme.str(config.language))
+  let page_maps : Array[Map[String, @theme.ContextValue]] = []
+  for _route, p in site.pages {
+    let pm : Map[String, @theme.ContextValue] = {}
+    pm.set("title", @theme.str(p.title))
+    pm.set("route", @theme.str(p.route))
+    page_maps.push(pm)
+  }
+  @theme.set(ctx, "site_pages", @theme.arr(page_maps))
+
+  // Navigation
+  let nav_maps : Array[Map[String, @theme.ContextValue]] = []
+  for item in config.navigation.nav {
+    let item_map = nav_item_to_map(item)
+    nav_maps.push(item_map)
+  }
+  @theme.set(ctx, "site_nav", @theme.arr(nav_maps))
+
+  match page {
+    Some(p) => {
+      @theme.set(ctx, "page_title", @theme.str(p.title))
+      @theme.set(ctx, "page_content", @theme.str(p.content_html))
+      @theme.set(ctx, "page_route", @theme.str(p.route))
+      match p.metadata.description {
+        Some(d) => @theme.set(ctx, "page_description", @theme.str(d))
+        None => ()
+      }
+      match p.metadata.date {
+        Some(d) => @theme.set(ctx, "page_date", @theme.str(d))
+        None => ()
+      }
+      match p.metadata.author {
+        Some(a) => @theme.set(ctx, "page_author", @theme.str(a))
+        None => ()
+      }
+    }
+    None => ()
+  }
+  ctx
+}
+
+///|
 fn escape_json(s : String) -> String {
   let buf = @builtin.StringBuilder::new()
   let len = s.length()
@@ -596,4 +637,231 @@ fn escape_json(s : String) -> String {
     }
   }
   buf.to_string()
+}
+
+///|
+/// Convert a NavItem to a template context map.
+fn nav_item_to_map(item : @core.NavItem) -> Map[String, @theme.ContextValue] {
+  let m : Map[String, @theme.ContextValue] = {}
+  match item {
+    @core.NavItem::Link(text, url) => {
+      m.set("type", @theme.str("link"))
+      m.set("text", @theme.str(text))
+      m.set("url", @theme.str(url))
+    }
+    @core.NavItem::Group(text, children) => {
+      m.set("type", @theme.str("group"))
+      m.set("text", @theme.str(text))
+      let child_maps : Array[Map[String, @theme.ContextValue]] = []
+      for child in children {
+        child_maps.push(nav_item_to_map(child))
+      }
+      m.set("children", @theme.arr(child_maps))
+    }
+    @core.NavItem::Separator => m.set("type", @theme.str("separator"))
+  }
+  m
+}
+
+///|
+/// Scan content/ and write nav.mbt (or nav.toml).
+/// Called by both auto_navigation (build) and `yuegui post-scan`.
+pub fn scan_and_write_nav(source_dir : String, format : String) -> Unit {
+  let files = try? @runtime.walk_dir(source_dir)
+  let files = match files {
+    Ok(f) => f
+    Err(_) => {
+      println("scan: error reading '\{source_dir}/'")
+      return
+    }
+  }
+  let nav_items : Array[FlatNavEntry] = []
+  for file in files {
+    if !file.has_suffix(".md") &&
+      !file.has_suffix(".typ") &&
+      !file.has_suffix(".html") {
+      continue
+    }
+    let rel = file[source_dir.length() + 1:].to_owned()
+    let content = try? @runtime.read_file(file)
+    let content = match content {
+      Ok(c) => c
+      Err(_) => continue
+    }
+    let (meta_title, draft, _published) = extract_frontmatter_meta(content)
+    if draft {
+      continue
+    }
+    let title = match meta_title {
+      Some(t) => t
+      None => {
+        let dot = find_char(rel, ".")
+        if dot >= 0 {
+          rel[:dot].to_owned()
+        } else {
+          rel
+        }
+      }
+    }
+    let route = "/" + rel
+    let route = if route.has_suffix(".md") ||
+      route.has_suffix(".typ") ||
+      route.has_suffix(".html") {
+      route[:route.length() - 3].to_owned()
+    } else {
+      route
+    }
+    let route = if route.has_suffix("/index") {
+      route[:route.length() - 6].to_owned()
+    } else {
+      route
+    }
+    let route = route + "/"
+    nav_items.push({ title, route })
+  }
+  if format == "toml" {
+    write_nav_toml(nav_items)
+  } else {
+    write_nav_mbt(nav_items)
+  }
+  println("scan: found \{nav_items.length()} pages")
+}
+
+///|
+/// A flat navigation entry from content scanning.
+priv struct FlatNavEntry {
+  title : String
+  route : String
+}
+
+///|
+/// Split a string into lines (newline-separated).
+fn split_lines(s : String) -> Array[String] {
+  let result : Array[String] = []
+  let len = s.length()
+  let mut start = 0
+  for i = 0; i < len; i = i + 1 {
+    if s[i:i + 1] == "\n" {
+      result.push(s[start:i].to_owned())
+      start = i + 1
+    }
+  }
+  if start < len {
+    result.push(s[start:].to_owned())
+  }
+  result
+}
+
+///|
+/// Find first occurrence of a single-char string, return index or -1.
+fn find_char(s : String, ch : String) -> Int {
+  let len = s.length()
+  for i = 0; i < len; i = i + 1 {
+    if s[i:i + 1] == ch {
+      return i
+    }
+  }
+  -1
+}
+
+///|
+/// Extract title, draft, published from frontmatter (TOML between +++ delimiters).
+fn extract_frontmatter_meta(content : String) -> (String?, Bool, Bool) {
+  let lines = split_lines(content)
+  let n = lines.length()
+  if n < 3 {
+    return (None, false, true)
+  }
+  if lines[0] != "+++" && lines[0] != "---" {
+    return (None, false, true)
+  }
+  let delim = lines[0]
+  let mut title : String? = None
+  let mut draft = false
+  let mut published = true
+  for i = 1; i < n; i = i + 1 {
+    if lines[i] == delim {
+      break
+    }
+    let line = lines[i]
+    if line[:5] == "title" {
+      let eq = find_char(line, "=")
+      if eq >= 0 {
+        let val = line[eq + 1:].to_owned()
+        let val = trim_leading_space(val)
+        let val = unquote(val)
+        title = Some(val)
+      }
+    } else if line == "draft = true" || line == "draft=true" {
+      draft = true
+    } else if line == "published = false" || line == "published=false" {
+      published = false
+    }
+  }
+  (title, draft, published)
+}
+
+///|
+/// Trim leading whitespace from a string.
+fn trim_leading_space(s : String) -> String {
+  let len = s.length()
+  let mut i = 0
+  while i < len && (s[i:i + 1] == " " || s[i:i + 1] == "\t") {
+    i = i + 1
+  }
+  if i == 0 {
+    s
+  } else {
+    s[i:].to_owned()
+  }
+}
+
+///|
+/// Remove surrounding double quotes if present.
+fn unquote(s : String) -> String {
+  let len = s.length()
+  if len >= 2 && s[0:1] == "\"" && s[len - 1:len] == "\"" {
+    s[1:len - 1].to_owned()
+  } else {
+    s
+  }
+}
+
+///|
+/// Write nav.mbt (MoonBit format) from scanned entries.
+fn write_nav_mbt(entries : Array[FlatNavEntry]) -> Unit {
+  let buf = @builtin.StringBuilder::new()
+  buf.write_string(
+    "////\n/// Auto-generated by `yuegui post-scan`. DO NOT EDIT.\n/// Re-run `yuegui post-scan` to regenerate.\n////\n\n",
+  )
+  buf.write_string("fn auto_navigation() -> @yuegui.NavigationConfig {\n")
+  buf.write_string("  {\n")
+  buf.write_string("    nav: [\n")
+  for entry in entries {
+    let label = entry.title
+    let link = entry.route
+    buf.write_string("      Link(\"\{label}\", \"\{link}\"),\n")
+  }
+  buf.write_string("    ],\n")
+  buf.write_string("    sidebar: {},\n")
+  buf.write_string("  }\n")
+  buf.write_string("}\n")
+  let _ = try? @runtime.write_file("nav.mbt", buf.to_string())
+  println("scan: wrote nav.mbt")
+}
+
+///|
+/// Write nav.toml from scanned entries.
+fn write_nav_toml(entries : Array[FlatNavEntry]) -> Unit {
+  let buf = @builtin.StringBuilder::new()
+  buf.write_string(
+    "# Auto-generated by `yuegui post-scan`. DO NOT EDIT.\n# Re-run `yuegui post-scan` to regenerate.\n\n",
+  )
+  for entry in entries {
+    buf.write_string("[[nav]]\n")
+    buf.write_string("text = \"\{entry.title}\"\n")
+    buf.write_string("link = \"\{entry.route}\"\n\n")
+  }
+  let _ = try? @runtime.write_file("nav.toml", buf.to_string())
+  println("scan: wrote nav.toml")
 }

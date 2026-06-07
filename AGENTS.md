@@ -12,38 +12,50 @@ Installed MoonBit skills (read these before guessing MoonBit behavior):
 ## Project Structure
 
 ```
-yuegui/
-  moon.mod             → module metadata + dependencies
-  moon.pkg             → root package (re-exports dispatch for @yuegui.dispatch)
-  yuegui.mbt           → root package: pub fn dispatch(config: SiteConfig)
-  cmd/main/main.mbt    → dev entry: @cli.dispatch(@core.default_site_config())
-  cmd/main/moon.pkg    → is-main: true
-  core/                → pure content model, SiteConfig, diagnostics
-  cli/                 → command parsing + build pipeline
-  runtime/             → filesystem I/O via moonbitlang/x/fs
-  theme/               → template engine + asset copier
-  format_markdown/     → Markdown parser/renderer
-  format_typst/        → Typst adapter (experimental stub)
+yuegui-moonbit-ssg/         ← workspace root (moon.work)
+  yuegui/                   ← engine: Anxiu0101/yuegui
+    moon.mod
+    cmd/main/main.mbt       ← dev entry: @yuegui.dispatch(default_yuegui_config())
+    core/                   → pure content model, YueguiConfig, diagnostics
+    cli/                    → command parsing + build pipeline
+    runtime/                → filesystem I/O via moonbitlang/x/fs
+    theme/                  → template engine + asset copier
+    format_markdown/        → Markdown parser/renderer
+    format_typst/           → Typst adapter (experimental stub)
+  site/                     ← official docs site
+  moon.work                 ← enables local dependency resolution
 ```
 
 Key architectural decisions (documented in `docs/development-logs/`):
-- **Config in code**: no `yuegui.toml` — `SiteConfig` is a MoonBit struct passed to `@yuegui.dispatch({...})` in user's `main.mbt`
+- **Config in code**: no config file — `YueguiConfig` is a MoonBit struct passed to `@yuegui.dispatch({...})` in user's `main.mbt`
 - **WASM by default**: `moon run . -- build` uses WASM backend, no C compiler needed, file I/O works via WASI
 - **Native only for serve**: HTTP preview server needs C FFI (socket/thread); `build`/`check`/`init` all work on WASM
 - **User site is a MoonBit project**: `my-site/` has `moon.mod` + `main.mbt` + `moon.pkg`, depends on `Anxiu0101/yuegui`
+- **Workspace development**: `moon.work` at root lets `site/` test against local yuegui without publishing
 
 ## Essential Commands
 
-### Engine development (inside yuegui/)
+### From workspace root (`yuegui-moonbit-ssg/`)
 
 ```bash
-moon run cmd/main -- build        # build demo content
-moon run cmd/main -- check        # validate only
-moon run cmd/main -- init x       # test scaffolding
-moon run --target native cmd/main -- serve  # preview server
-moon check                        # type-check all packages
-moon test                         # run tests
-moon info && moon fmt             # regenerate .mbti + format
+# Engine: build / check / test
+moon -C yuegui run cmd/main -- build        # build demo content
+moon -C yuegui run cmd/main -- check        # validate only
+moon -C yuegui run cmd/main -- init x       # test scaffolding
+moon -C yuegui check                        # type-check all packages
+moon -C yuegui test                         # run tests
+moon -C yuegui info && moon -C yuegui fmt   # regenerate .mbti + format
+
+# Site docs (uses local yuegui via workspace)
+moon -C site run . -- build                 # build site docs
+moon -C site run . -- check                 # validate site docs
+```
+
+### Inside a directory directly
+
+```bash
+cd yuegui && moon run cmd/main -- build     # same as moon -C yuegui ...
+cd site && moon run . -- build              # same as moon -C site ...
 ```
 
 ### User site workflow (inside my-site/)
@@ -51,7 +63,6 @@ moon info && moon fmt             # regenerate .mbti + format
 ```bash
 yuegui build    # = moon run . -- build (WASM)
 yuegui check    # = moon run . -- check
-yuegui dev      # = moon run --target native . -- serve
 ```
 
 ## Validation Loop

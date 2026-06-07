@@ -76,8 +76,9 @@ pub fn check_missing_titles(site : Site) -> Site {
 /// Known template variable names available in the theme context.
 /// Top-level keys that must exist for proper rendering.
 let known_template_vars : Array[String] = [
-  "site_title", "site_language", "site_pages", "page_title", "page_content", "page_route",
-  "page_description", "page_date", "page_author", "this",
+  "site_title", "site_language", "site_pages", "site_nav", "page_title", "page_content",
+  "page_route", "page_description", "page_date", "page_author", "this", "type", "text",
+  "url", "children",
 ]
 
 ///|

@@ -2,12 +2,11 @@
 
 **MoonBit-native static site generator for technical publishing.**
 
-[![Module](https://img.shields.io/badge/module-Anxiu0101%2Fyuegui-blue)](https://github.com/Anxiu0101/yuegui)
+[![Module](https://img.shields.io/badge/module-Anxiu0101%2Fyuegui-blue)](https://mooncakes.io/packages/Anxiu0101/yuegui)
 
-Yuegui treats Markdown (stable) and Typst (experimental) as first-class source formats in a shared site graph. It provides strong build-time diagnostics and
+Yuegui treats Markdown (stable) and Typst (experimental) as first-class source
+formats in a shared site graph. It provides strong build-time diagnostics and
 emits fast static HTML.
-
-![example page](./yuegui.jpg)
 
 ## Prerequisites
 
@@ -47,7 +46,7 @@ instead of typing `moon run . -- build`.
 ```bash
 git clone https://github.com/Anxiu0101/yuegui
 cd yuegui
-moon run cmd/main -- build       # build the demo site content
+moon run cmd/main -- build       # build test content
 moon run cmd/main -- check       # validate without output
 moon run cmd/main -- init x      # test scaffolding
 ```
@@ -57,7 +56,7 @@ moon run cmd/main -- init x      # test scaffolding
 | Command | Description |
 |---|---|
 | `yuegui init <name>` | Scaffold a new site project |
-| `yuegui build` | Build static site to output directory (configurable in `main.mbt`) |
+| `yuegui build` | Build static site to output directory |
 | `yuegui check` | Validate content, report diagnostics |
 | `yuegui dev` | Start preview server with live reload (needs native backend) |
 | `yuegui new page <slug>` | Scaffold a new page stub |
@@ -75,10 +74,6 @@ moon build cmd/main --target native
 ```
 
 Output: `_build/native/debug/build/cmd/main/main.exe`
-
-**Note:** The native exe is currently affected by a
-[`moonbitlang/x/fs` CWD bug on Windows](./docs/development-logs/moonbit-windows-native-compilation.md).
-Running via `moon run` (WASM) is the recommended approach.
 
 ## Modules
 

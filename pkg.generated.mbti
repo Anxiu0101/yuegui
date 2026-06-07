@@ -6,7 +6,7 @@ import {
 }
 
 // Values
-pub fn dispatch(@core.SiteConfig) -> Unit
+pub fn dispatch(@core.YueguiConfig) -> Unit
 
 // Errors
 

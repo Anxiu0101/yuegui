@@ -4,7 +4,7 @@
 
 ///|
 /// Parse CLI args and dispatch to the matching subcommand with site config.
-pub fn dispatch(config : @core.SiteConfig) -> Unit {
+pub fn dispatch(config : @core.YueguiConfig) -> Unit {
   let cmd = build_parser()
   let matches = try? cmd.parse()
   match matches {
@@ -33,6 +33,10 @@ fn build_parser() -> @argparse.Command {
     "check",
     about="Validate content without emitting output",
   )
+  let post_scan = @argparse.Command::new(
+    "post-scan",
+    about="Scan content/ and generate nav.mbt",
+  )
   let page = @argparse.Command::new("page", about="Scaffold a new page", positionals=[
     @argparse.PositionArg::new("slug", about="Page slug"),
   ])
@@ -51,14 +55,14 @@ fn build_parser() -> @argparse.Command {
     "yuegui",
     about="Yuegui — MoonBit-native static site generator",
     version="0.1.0",
-    subcommands=[init, build, dev, check, cmd_new],
+    subcommands=[init, build, dev, check, post_scan, cmd_new],
     arg_required_else_help=true,
   )
 }
 
 ///|
 fn handle_matches(
-  config : @core.SiteConfig,
+  config : @core.YueguiConfig,
   matches : @argparse.Matches,
 ) -> Unit {
   match matches.subcommand {
@@ -69,6 +73,7 @@ fn handle_matches(
     Some(("build", _)) => run_build(config)
     Some(("dev", _)) => run_dev(config)
     Some(("check", _)) => run_check(config)
+    Some(("post-scan", _)) => cmd_post_scan(config.source_dir, "mbt")
     Some(("new", new_m)) => handle_new(new_m)
     Some((name, _)) => println("unknown command: \{name}")
     None => println("yuegui --help for usage")
@@ -123,6 +128,13 @@ fn cmd_init(site_name : String) -> Unit {
   println("  yuegui build")
   println("  yuegui dev")
   println("  yuegui check")
+}
+
+///|
+fn cmd_post_scan(source_dir : String, format : String) -> Unit {
+  println("post-scan: scanning \{source_dir}/...")
+  scan_and_write_nav(source_dir, format)
+  println("post-scan: done")
 }
 
 ///|
